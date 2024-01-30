@@ -5,7 +5,8 @@ import net.clynamic.common.IntSqlService
 import net.clynamic.common.setAll
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.statements.UpdateBuilder
+import org.jetbrains.exposed.sql.statements.InsertStatement
+import org.jetbrains.exposed.sql.statements.UpdateStatement
 
 class UsersService(database: Database) :
     IntSqlService<UserRequest, User, UserUpdate, UsersService.Users>(database) {
@@ -30,7 +31,7 @@ class UsersService(database: Database) :
         )
     }
 
-    override fun fromUpdate(statement: UpdateBuilder<*>, update: UserUpdate) {
+    override fun fromUpdate(statement: UpdateStatement, update: UserUpdate) {
         statement.setAll {
             Users.name set update.name
             Users.rank set update.rank
@@ -39,7 +40,7 @@ class UsersService(database: Database) :
         }
     }
 
-    override fun fromRequest(statement: UpdateBuilder<*>, request: UserRequest) {
+    override fun fromRequest(statement: InsertStatement<*>, request: UserRequest) {
         statement.setAll {
             Users.id set request.id
             Users.name set request.name

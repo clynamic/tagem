@@ -10,7 +10,8 @@ import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.andWhere
-import org.jetbrains.exposed.sql.statements.UpdateBuilder
+import org.jetbrains.exposed.sql.statements.InsertStatement
+import org.jetbrains.exposed.sql.statements.UpdateStatement
 import java.time.Instant
 
 class ContributionsService(database: Database) :
@@ -43,11 +44,11 @@ class ContributionsService(database: Database) :
         )
     }
 
-    override fun fromUpdate(statement: UpdateBuilder<*>, update: Nothing) {
+    override fun fromUpdate(statement: UpdateStatement, update: Nothing) {
         // No-op
     }
 
-    override fun fromRequest(statement: UpdateBuilder<*>, request: ContributionRequest) {
+    override fun fromRequest(statement: InsertStatement<*>, request: ContributionRequest) {
         statement.setAll {
             Contributions.projectId set request.projectId
             Contributions.userId set request.userId

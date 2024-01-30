@@ -10,7 +10,8 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.andWhere
-import org.jetbrains.exposed.sql.statements.UpdateBuilder
+import org.jetbrains.exposed.sql.statements.InsertStatement
+import org.jetbrains.exposed.sql.statements.UpdateStatement
 import java.time.Instant
 
 class CommentsService(database: Database) :
@@ -39,7 +40,7 @@ class CommentsService(database: Database) :
         )
     }
 
-    override fun fromUpdate(statement: UpdateBuilder<*>, update: CommentUpdate) {
+    override fun fromUpdate(statement: UpdateStatement, update: CommentUpdate) {
         statement.setAll {
             Comments.content to update.content
             Comments.isHidden to update.isHidden
@@ -47,7 +48,7 @@ class CommentsService(database: Database) :
         }
     }
 
-    override fun fromRequest(statement: UpdateBuilder<*>, request: CommentRequest) {
+    override fun fromRequest(statement: InsertStatement<*>, request: CommentRequest) {
         statement.setAll {
             Comments.projectId to request.projectId
             Comments.userId to request.userId

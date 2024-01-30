@@ -5,12 +5,14 @@ import io.github.smiley4.ktorswaggerui.dsl.get
 import io.github.smiley4.ktorswaggerui.dsl.patch
 import io.github.smiley4.ktorswaggerui.dsl.post
 import io.github.smiley4.ktorswaggerui.dsl.put
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.getPageAndSize
@@ -67,7 +69,7 @@ fun Application.configureProjectsRouting() {
         }
         authenticate {
             permissions({
-                ranked(UserRank.Privileged)
+                rankedOrHigher(UserRank.Privileged)
             }) {
                 post("/projects", {
                     tags = listOf("projects")
@@ -89,7 +91,7 @@ fun Application.configureProjectsRouting() {
                     val request = call.receive<ProjectRequest>()
                     val id = service.create(request)
                     call.response.headers.append("Location", "/projects/${id}")
-                    call.respond(HttpStatusCode.Created, id)
+                    call.respondText(id.toString(), ContentType.Text.Plain, HttpStatusCode.Created)
                 }
             }
             permissions({
@@ -115,7 +117,7 @@ fun Application.configureProjectsRouting() {
                     }
                 }) {
                     val id = call.parameters["id"]?.toIntOrNull()
-                        ?: return@put call.respond(HttpStatusCode.BadRequest)
+                        ?: return@put call.respond(HttpStatusCode.BadRequest, "Invalid ID")
 
                     val update = call.receive<ProjectUpdate>()
                     service.update(id, update)
@@ -135,7 +137,7 @@ fun Application.configureProjectsRouting() {
                     }
                 }) {
                     val id = call.parameters["id"]?.toIntOrNull()
-                        ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                        ?: return@delete call.respond(HttpStatusCode.BadRequest, "Invalid ID")
 
                     service.update(id, ProjectUpdate(isDeleted = true))
                     call.respond(HttpStatusCode.NoContent)
@@ -154,7 +156,7 @@ fun Application.configureProjectsRouting() {
                     }
                 }) {
                     val id = call.parameters["id"]?.toIntOrNull()
-                        ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                        ?: return@patch call.respond(HttpStatusCode.BadRequest, "Invalid ID")
 
                     service.update(id, ProjectUpdate(isDeleted = false))
                     call.respond(HttpStatusCode.NoContent)

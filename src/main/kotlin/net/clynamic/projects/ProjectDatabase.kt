@@ -10,7 +10,8 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.andWhere
-import org.jetbrains.exposed.sql.statements.UpdateBuilder
+import org.jetbrains.exposed.sql.statements.InsertStatement
+import org.jetbrains.exposed.sql.statements.UpdateStatement
 
 class ProjectsService(database: Database) :
     IntSqlService<ProjectRequest, Project, ProjectUpdate, ProjectsService.Projects>(database) {
@@ -48,7 +49,7 @@ class ProjectsService(database: Database) :
         )
     }
 
-    override fun fromUpdate(statement: UpdateBuilder<*>, update: ProjectUpdate) {
+    override fun fromUpdate(statement: UpdateStatement, update: ProjectUpdate) {
         statement.setAll {
             Projects.name set update.name
             Projects.description set update.description
@@ -62,7 +63,7 @@ class ProjectsService(database: Database) :
         }
     }
 
-    override fun fromRequest(statement: UpdateBuilder<*>, request: ProjectRequest) {
+    override fun fromRequest(statement: InsertStatement<*>, request: ProjectRequest) {
         statement.setAll {
             Projects.name set request.name
             Projects.meta set request.meta
@@ -72,8 +73,9 @@ class ProjectsService(database: Database) :
             Projects.tags set request.tags
             Projects.mode set request.mode
             Projects.options set request.options
-            Projects.conditionals set request.conditionals
-            Projects.isPrivate set request.isPrivate
+            Projects.conditionals set (request.conditionals ?: emptyList())
+            Projects.isPrivate set (request.isPrivate ?: false)
+            Projects.isDeleted set false
         }
     }
 

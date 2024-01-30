@@ -6,6 +6,9 @@ import io.ktor.server.application.call
 import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.RouteSelector
+import io.ktor.server.routing.RouteSelectorEvaluation
+import io.ktor.server.routing.RoutingResolveContext
 import net.clynamic.common.DATABASE_KEY
 
 enum class UserRank {
@@ -54,19 +57,32 @@ class Permission {
     }
 }
 
+class PermissionsRouteSelector : RouteSelector() {
+    override fun evaluate(
+        context: RoutingResolveContext,
+        segmentIndex: Int
+    ): RouteSelectorEvaluation {
+        return RouteSelectorEvaluation.Transparent
+    }
+
+    override fun toString(): String = "(permissions)"
+}
+
 fun Route.permissions(block: Permission.() -> Unit, routeBlock: Route.() -> Unit) {
     val permission = Permission().apply(block)
 
-    this@permissions.routeBlock()
+    val permissionRoute = this.createChild(PermissionsRouteSelector())
 
-    this@permissions.intercept(ApplicationCallPipeline.Call) {
+    permissionRoute.routeBlock()
+
+    permissionRoute.intercept(ApplicationCallPipeline.Call) {
         val userId = call.principal<UserPrincipal>()?.id ?: return@intercept call.respond(
-            HttpStatusCode.Unauthorized
+            HttpStatusCode.Unauthorized, "Missing or invalid Token"
         )
         val service = UsersService(call.application.attributes[DATABASE_KEY])
 
         val rank = service.read(userId)?.rank
-            ?: return@intercept call.respond(HttpStatusCode.Unauthorized)
+            ?: return@intercept call.respond(HttpStatusCode.Unauthorized, "Token User not found")
 
         val hasValidRank = permission.entries.any { entry ->
             val isRank = rank == entry.rank
@@ -75,7 +91,10 @@ fun Route.permissions(block: Permission.() -> Unit, routeBlock: Route.() -> Unit
                 val result = entry.ownershipCheck.invoke(
                     userId,
                     call.parameters["id"]?.toIntOrNull()
-                        ?: return@intercept call.respond(HttpStatusCode.BadRequest)
+                        ?: return@intercept call.respond(
+                            HttpStatusCode.BadRequest,
+                            "Missing ID parameter"
+                        )
                 )
                 result ?: return@intercept call.respond(HttpStatusCode.NotFound)
             } else {
@@ -86,7 +105,7 @@ fun Route.permissions(block: Permission.() -> Unit, routeBlock: Route.() -> Unit
         }
 
         if (!hasValidRank) {
-            return@intercept call.respond(HttpStatusCode.Forbidden)
+            return@intercept call.respond(HttpStatusCode.Forbidden, "Insufficient permissions")
         }
     }
 }

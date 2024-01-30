@@ -29,8 +29,8 @@ data class ProjectRequest(
     val tags: List<String>,
     val mode: SelectionMode,
     val options: List<ProjectOption>,
-    val conditionals: List<String> = emptyList(),
-    val isPrivate: Boolean = false,
+    val conditionals: List<String>?,
+    val isPrivate: Boolean?,
 )
 
 data class ProjectUpdate(

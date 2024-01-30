@@ -17,7 +17,8 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.statements.UpdateBuilder
+import org.jetbrains.exposed.sql.statements.InsertStatement
+import org.jetbrains.exposed.sql.statements.UpdateStatement
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
@@ -66,8 +67,8 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
     internal fun Query.toModel(): Model? = mapNotNull(::toModel).singleOrNull()
     internal fun Query.allToModel(): List<Model> = allToModel(toList())
 
-    abstract fun fromRequest(statement: UpdateBuilder<*>, request: Request)
-    abstract fun fromUpdate(statement: UpdateBuilder<*>, update: Update)
+    abstract fun fromRequest(statement: InsertStatement<*>, request: Request)
+    abstract fun fromUpdate(statement: UpdateStatement, update: Update)
 
     override suspend fun create(request: Request): Id = dbQuery {
         table.insert {
@@ -168,13 +169,24 @@ class JsonAsText<T : Any>(private val typeRef: TypeReference<T>) : ColumnType() 
 fun <T : Any> Table.json(name: String, typeRef: TypeReference<T>): Column<T> =
     registerColumn(name, JsonAsText(typeRef))
 
-class UpdateBuilderSets(private val statement: UpdateBuilder<*>) {
+class UpdateStatementSets(private val statement: UpdateStatement) {
     infix fun <T> Column<T>.set(value: T?) {
         if (value != null) statement[this] = value
     }
 }
 
-fun UpdateBuilder<*>.setAll(block: UpdateBuilderSets.() -> Unit) {
-    val dsl = UpdateBuilderSets(this)
+fun UpdateStatement.setAll(block: UpdateStatementSets.() -> Unit) {
+    val dsl = UpdateStatementSets(this)
+    dsl.block()
+}
+
+class InsertStatementSets(private val statement: InsertStatement<*>) {
+    infix fun <T> Column<T>.set(value: T) {
+        statement[this] = value
+    }
+}
+
+fun InsertStatement<*>.setAll(block: InsertStatementSets.() -> Unit) {
+    val dsl = InsertStatementSets(this)
     dsl.block()
 }
