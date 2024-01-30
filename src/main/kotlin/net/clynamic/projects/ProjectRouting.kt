@@ -15,6 +15,8 @@ import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.getPageAndSize
 import net.clynamic.common.getSortAndOrder
+import net.clynamic.users.UserRank
+import net.clynamic.users.permissions
 import org.jetbrains.exposed.sql.SortOrder
 
 fun Application.configureProjectsRouting() {
@@ -64,88 +66,99 @@ fun Application.configureProjectsRouting() {
             call.respond(HttpStatusCode.OK, projects)
         }
         authenticate {
-            post("/projects", {
-                tags = listOf("projects")
-                description = "Create a project"
-                securitySchemeName = "jwt"
-                request {
-                    body<ProjectRequest> {
-                        description = "New project properties"
-                    }
-                }
-                response {
-                    HttpStatusCode.Created to {
-                        body<Int> {
-                            description = "The new project ID"
+            permissions({
+                ranked(UserRank.Privileged)
+            }) {
+                post("/projects", {
+                    tags = listOf("projects")
+                    description = "Create a project"
+                    securitySchemeName = "jwt"
+                    request {
+                        body<ProjectRequest> {
+                            description = "New project properties"
                         }
                     }
+                    response {
+                        HttpStatusCode.Created to {
+                            body<Int> {
+                                description = "The new project ID"
+                            }
+                        }
+                    }
+                }) {
+                    val request = call.receive<ProjectRequest>()
+                    val id = service.create(request)
+                    call.response.headers.append("Location", "/projects/${id}")
+                    call.respond(HttpStatusCode.Created, id)
                 }
-            }) {
-                val request = call.receive<ProjectRequest>()
-                val id = service.create(request)
-                call.response.headers.append("Location", "/projects/${id}")
-                call.respond(HttpStatusCode.Created, id)
             }
-            put("/projects/{id}", {
-                tags = listOf("projects")
-                description = "Update a project by ID"
-                securitySchemeName = "jwt"
-                request {
-                    pathParameter<Int>("id") { description = "The project ID" }
-                    body<ProjectUpdate> {
-                        description = "New project properties"
-                    }
+            permissions({
+                ranked(UserRank.Privileged) { userId, projectId ->
+                    service.read(projectId)?.let { it.userId == userId }
                 }
-                response {
-                    HttpStatusCode.NoContent to {
-                        description = "Project updated"
-                    }
-                }
+                rankedOrHigher(UserRank.Janitor)
             }) {
-                val id = call.parameters["id"]?.toIntOrNull()
-                    ?: return@put call.respond(HttpStatusCode.BadRequest)
-
-                val update = call.receive<ProjectUpdate>()
-                service.update(id, update)
-                call.respond(HttpStatusCode.NoContent)
-            }
-            delete("/projects/{id}", {
-                tags = listOf("projects")
-                description = "Delete a project by ID"
-                securitySchemeName = "jwt"
-                request {
-                    pathParameter<Int>("id") { description = "The project ID" }
-                }
-                response {
-                    HttpStatusCode.NoContent to {
-                        description = "Project deleted"
+                put("/projects/{id}", {
+                    tags = listOf("projects")
+                    description = "Update a project by ID"
+                    securitySchemeName = "jwt"
+                    request {
+                        pathParameter<Int>("id") { description = "The project ID" }
+                        body<ProjectUpdate> {
+                            description = "New project properties"
+                        }
                     }
-                }
-            }) {
-                val id = call.parameters["id"]?.toIntOrNull()
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest)
-
-                service.update(id, ProjectUpdate(isDeleted = true))
-                call.respond(HttpStatusCode.NoContent)
-            }
-            patch("/projects/{id}/restore", {
-                tags = listOf("projects")
-                description = "Restore a project by ID"
-                securitySchemeName = "jwt"
-                request {
-                    pathParameter<Int>("id") { description = "The project ID" }
-                }
-                response {
-                    HttpStatusCode.NoContent to {
-                        description = "Project restored"
+                    response {
+                        HttpStatusCode.NoContent to {
+                            description = "Project updated"
+                        }
                     }
-                }
-            }) {
-                val id = call.parameters["id"]?.toIntOrNull()
-                    ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                }) {
+                    val id = call.parameters["id"]?.toIntOrNull()
+                        ?: return@put call.respond(HttpStatusCode.BadRequest)
 
-                service.update(id, ProjectUpdate(isDeleted = false))
-                call.respond(HttpStatusCode.NoContent)
+                    val update = call.receive<ProjectUpdate>()
+                    service.update(id, update)
+                    call.respond(HttpStatusCode.NoContent)
+                }
+                delete("/projects/{id}", {
+                    tags = listOf("projects")
+                    description = "Delete a project by ID"
+                    securitySchemeName = "jwt"
+                    request {
+                        pathParameter<Int>("id") { description = "The project ID" }
+                    }
+                    response {
+                        HttpStatusCode.NoContent to {
+                            description = "Project deleted"
+                        }
+                    }
+                }) {
+                    val id = call.parameters["id"]?.toIntOrNull()
+                        ?: return@delete call.respond(HttpStatusCode.BadRequest)
+
+                    service.update(id, ProjectUpdate(isDeleted = true))
+                    call.respond(HttpStatusCode.NoContent)
+                }
+                patch("/projects/{id}/restore", {
+                    tags = listOf("projects")
+                    description = "Restore a project by ID"
+                    securitySchemeName = "jwt"
+                    request {
+                        pathParameter<Int>("id") { description = "The project ID" }
+                    }
+                    response {
+                        HttpStatusCode.NoContent to {
+                            description = "Project restored"
+                        }
+                    }
+                }) {
+                    val id = call.parameters["id"]?.toIntOrNull()
+                        ?: return@patch call.respond(HttpStatusCode.BadRequest)
+
+                    service.update(id, ProjectUpdate(isDeleted = false))
+                    call.respond(HttpStatusCode.NoContent)
+                }
             }
         }
     }

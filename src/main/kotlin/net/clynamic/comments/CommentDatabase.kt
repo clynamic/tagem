@@ -9,9 +9,7 @@ import net.clynamic.users.UsersService
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
-import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.andWhere
-import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import java.time.Instant
 
@@ -70,10 +68,6 @@ class CommentsService(database: Database) :
         query(page, size, sort, order)
             .let { base -> user?.let { base.andWhere { table.userId eq it } } ?: base }
             .let { base -> project?.let { base.andWhere { table.projectId eq it } } ?: base }
-            .map { toModel(it) }
-    }
-    
-    suspend fun isOwner(id: Int, userId: Int): Boolean = dbQuery {
-        table.select { table.id eq id and (table.userId eq userId) }.count() == 1L
+            .allToModel()
     }
 }

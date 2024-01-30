@@ -12,6 +12,8 @@ import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.getPageAndSize
 import net.clynamic.common.getSortAndOrder
+import net.clynamic.users.UserRank
+import net.clynamic.users.permissions
 import org.jetbrains.exposed.sql.SortOrder
 
 fun Application.configureContributionsRouting() {
@@ -65,26 +67,30 @@ fun Application.configureContributionsRouting() {
             call.respond(HttpStatusCode.OK, projects)
         }
         authenticate {
-            post("/contributions", {
-                tags = listOf("contributions")
-                description = "Create a contribution"
-                securitySchemeName = "jwt"
-                request {
-                    body<ContributionRequest> {
-                        description = "New contribution properties"
-                    }
-                }
-                response {
-                    HttpStatusCode.Created to {
-                        body<Int> {
-                            description = "The new contribution ID"
+            permissions({
+                rankedOrHigher(UserRank.Member)
+            }) {
+                post("/contributions", {
+                    tags = listOf("contributions")
+                    description = "Create a contribution"
+                    securitySchemeName = "jwt"
+                    request {
+                        body<ContributionRequest> {
+                            description = "New contribution properties"
                         }
                     }
+                    response {
+                        HttpStatusCode.Created to {
+                            body<Int> {
+                                description = "The new contribution ID"
+                            }
+                        }
+                    }
+                }) {
+                    val contributionId = call.receive<ContributionRequest>()
+                    val id = service.create(contributionId)
+                    call.respond(HttpStatusCode.Created, id)
                 }
-            }) {
-                val contributionId = call.receive<ContributionRequest>()
-                val id = service.create(contributionId)
-                call.respond(HttpStatusCode.Created, id)
             }
         }
     }
