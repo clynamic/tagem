@@ -2,6 +2,7 @@ package net.clynamic.users
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import io.github.smiley4.ktorswaggerui.dsl.delete
 import io.github.smiley4.ktorswaggerui.dsl.get
 import io.github.smiley4.ktorswaggerui.dsl.patch
 import io.github.smiley4.ktorswaggerui.dsl.post
@@ -159,7 +160,50 @@ fun Application.configureUsersRouting() {
                     }
                     response {
                         HttpStatusCode.OK to {
-                            body<User> {}
+                            description = "User permissions were updated"
+                        }
+                        HttpStatusCode.NotFound to {
+                            description = "User not found"
+                        }
+                    }
+                }) {
+                    val id = call.parameters["id"]?.toIntOrNull()
+                        ?: return@patch call.respond(HttpStatusCode.BadRequest, "Invalid ID")
+                    val rank = call.receive<UserRank>()
+                    service.update(id, UserUpdate(rank = rank))
+                    call.respond(HttpStatusCode.OK, "User permissions were updated")
+                }
+                delete("/users/{id}", {
+                    tags = listOf("users")
+                    description = "Ban a user"
+                    securitySchemeName = "jwt"
+                    request {
+                        pathParameter<Int>("id") { description = "The user ID" }
+                    }
+                    response {
+                        HttpStatusCode.OK to {
+                            description = "User was banned"
+                        }
+                        HttpStatusCode.NotFound to {
+                            description = "User not found"
+                        }
+                    }
+                }) {
+                    val id = call.parameters["id"]?.toIntOrNull()
+                        ?: return@delete call.respond(HttpStatusCode.BadRequest, "Invalid ID")
+                    service.update(id, UserUpdate(isBanned = true))
+                    call.respond(HttpStatusCode.OK, "User was banned")
+                }
+                patch("/users/{id}/restore", {
+                    tags = listOf("users")
+                    description = "Pardon a user"
+                    securitySchemeName = "jwt"
+                    request {
+                        pathParameter<Int>("id") { description = "The user ID" }
+                    }
+                    response {
+                        HttpStatusCode.OK to {
+                            description = "User was restored"
                         }
                         HttpStatusCode.NotFound to {
                             description = "User not found"
@@ -171,9 +215,8 @@ fun Application.configureUsersRouting() {
                         call.respond(HttpStatusCode.BadRequest, "Invalid ID")
                         return@patch
                     }
-                    val rank = call.receive<UserRank>()
-                    val user = service.update(id, UserUpdate(rank = rank))
-                    call.respond(HttpStatusCode.OK, user)
+                    service.update(id, UserUpdate(isBanned = false))
+                    call.respond(HttpStatusCode.OK, "User was restored")
                 }
             }
         }
