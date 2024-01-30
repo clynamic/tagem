@@ -10,12 +10,6 @@ import net.clynamic.common.DATABASE_KEY
 
 enum class UserRank {
     /**
-     * A new user with no privileges.
-     * They cannot create projects or make contributions.
-     */
-    Visitor,
-
-    /**
      * A user who has made at least 100 contributions.
      * They can contribute to projects.
      */

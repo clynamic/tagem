@@ -13,7 +13,7 @@ data class User(
 data class UserRequest(
     val id: Int,
     val name: String,
-    val rank: UserRank = UserRank.Visitor,
+    val rank: UserRank,
     val strikes: Int = 0,
     val isBanned: Boolean = false
 )
@@ -35,15 +35,15 @@ data class UserInfo(
     val name: String,
     val contributions: Int,
 ) {
-    private val rank: UserRank
+    private val rank: UserRank?
         get() = when {
             contributions >= 1000 -> UserRank.Privileged
             contributions >= 100 -> UserRank.Member
-            else -> UserRank.Visitor
+            else -> null // not eligible for account creation
         }
 
-    val request: UserRequest
-        get() = UserRequest(id, name, rank)
+    val request: UserRequest?
+        get() = rank?.let { UserRequest(id, name, it) }
 
     val update: UserUpdate
         get() = UserUpdate(name, rank)

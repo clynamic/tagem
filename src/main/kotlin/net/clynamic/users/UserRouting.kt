@@ -74,16 +74,31 @@ fun Application.configureUsersRouting() {
             try {
                 userInfo = client.authenticate(credentials.username, credentials.password)
             } catch (e: IOException) {
-                call.respond(HttpStatusCode.Unauthorized, "Invalid credentials: ${e.message}")
-                return@post
+                return@post call.respond(
+                    HttpStatusCode.Unauthorized,
+                    "Invalid credentials: ${e.message}"
+                )
             }
+
+            val request = userInfo.request
+                ?: return@post call.respond(
+                    HttpStatusCode.Forbidden,
+                    "You do not have enough contributions to create an account"
+                )
 
             val user = service.dbQuery {
                 var user = service.read(userInfo.id)
                 if (user == null) {
-                    val id = service.create(userInfo.request)
+                    val id = service.create(request)
                     user = service.read(id)!!
                 } else {
+                    user = user.copy(
+                        // contribution rank or database rank, whichever is higher
+                        rank = UserRank.entries.toTypedArray()[maxOf(
+                            user.rank.ordinal,
+                            request.rank.ordinal
+                        )]
+                    )
                     service.update(userInfo.id, userInfo.update)
                 }
                 return@dbQuery user
