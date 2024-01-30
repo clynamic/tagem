@@ -1,5 +1,6 @@
 package net.clynamic.comments
 
+import io.github.smiley4.ktorswaggerui.dsl.delete
 import io.github.smiley4.ktorswaggerui.dsl.get
 import io.github.smiley4.ktorswaggerui.dsl.patch
 import io.github.smiley4.ktorswaggerui.dsl.post
@@ -143,7 +144,7 @@ fun Application.configureCommentsRouting() {
                     call.respond(HttpStatusCode.NoContent)
                 }
             }
-            patch("/comments/{id}/hide", {
+            delete("/comments/{id}", {
                 tags = listOf("comments")
                 description = "Hide a comment by ID"
                 securitySchemeName = "jwt"
@@ -157,7 +158,7 @@ fun Application.configureCommentsRouting() {
                 }
             }) {
                 val id = call.parameters["id"]?.toIntOrNull()
-                    ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest)
 
                 service.update(id, CommentUpdate(isHidden = true))
                 call.respond(HttpStatusCode.NoContent)

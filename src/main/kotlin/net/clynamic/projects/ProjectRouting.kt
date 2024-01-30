@@ -2,6 +2,7 @@ package net.clynamic.projects
 
 import io.github.smiley4.ktorswaggerui.dsl.delete
 import io.github.smiley4.ktorswaggerui.dsl.get
+import io.github.smiley4.ktorswaggerui.dsl.patch
 import io.github.smiley4.ktorswaggerui.dsl.post
 import io.github.smiley4.ktorswaggerui.dsl.put
 import io.ktor.http.HttpStatusCode
@@ -120,6 +121,24 @@ fun Application.configureProjectsRouting() {
                 ?: return@delete call.respond(HttpStatusCode.BadRequest)
 
             service.update(id, ProjectUpdate(isDeleted = true))
+            call.respond(HttpStatusCode.NoContent)
+        }
+        patch("/projects/{id}/restore", {
+            tags = listOf("projects")
+            description = "Restore a project by ID"
+            request {
+                pathParameter<Int>("id") { description = "The project ID" }
+            }
+            response {
+                HttpStatusCode.NoContent to {
+                    description = "Project restored"
+                }
+            }
+        }) {
+            val id = call.parameters["id"]?.toIntOrNull()
+                ?: return@patch call.respond(HttpStatusCode.BadRequest)
+
+            service.update(id, ProjectUpdate(isDeleted = false))
             call.respond(HttpStatusCode.NoContent)
         }
     }
