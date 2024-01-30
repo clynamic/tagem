@@ -63,7 +63,7 @@ fun Route.permissions(block: Permission.() -> Unit, routeBlock: Route.() -> Unit
         val userId = call.principal<UserPrincipal>()?.id ?: return@intercept call.respond(
             HttpStatusCode.Unauthorized
         )
-        val service = UsersService(call.attributes[DATABASE_KEY])
+        val service = UsersService(call.application.attributes[DATABASE_KEY])
 
         val rank = service.read(userId)?.rank
             ?: return@intercept call.respond(HttpStatusCode.Unauthorized)
