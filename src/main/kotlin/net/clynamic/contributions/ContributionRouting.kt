@@ -19,28 +19,29 @@ fun Application.configureContributionsRouting() {
     routing {
         post("/contributions", {
             tags = listOf("contributions")
-            description = "Increment a user's contribution count"
+            description = "Create a contribution"
             request {
-                body<ContributionId> {
-                    description = "The contribution ID, consisting of a project ID and user ID"
+                body<ContributionRequest> {
+                    description = "New contribution properties"
                 }
             }
             response {
-                HttpStatusCode.NoContent to {
-                    description = "Contribution count incremented"
+                HttpStatusCode.Created to {
+                    body<Int> {
+                        description = "The new contribution ID"
+                    }
                 }
             }
         }) {
-            val contributionId = call.receive<ContributionId>()
-            service.increment(contributionId)
-            call.respond(HttpStatusCode.NoContent)
+            val contributionId = call.receive<ContributionRequest>()
+            val id = service.create(contributionId)
+            call.respond(HttpStatusCode.Created, id)
         }
-        get("/contributions/{project}/{user}", {
+        get("/contributions/{id}", {
             tags = listOf("contributions")
-            description = "Get a contribution by project and user ID"
+            description = "Get a contribution by ID"
             request {
-                pathParameter<Int>("project") { description = "The project ID" }
-                pathParameter<Int>("user") { description = "The user ID" }
+                pathParameter<Int>("id") { description = "The contribution ID" }
             }
             response {
                 HttpStatusCode.OK to {
@@ -51,16 +52,9 @@ fun Application.configureContributionsRouting() {
                 }
             }
         }) {
-            val projectId = call.parameters["project"]?.toIntOrNull()
+            val id = call.parameters["id"]?.toIntOrNull()
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
-            val userId = call.parameters["user"]?.toIntOrNull()
-                ?: return@get call.respond(HttpStatusCode.BadRequest)
-
-            val contribution =
-                service.read(
-                    ContributionId(projectId, userId)
-                ) ?: return@get call.respond(HttpStatusCode.NotFound)
-
+            val contribution = service.read(id) ?: return@get call.respond(HttpStatusCode.NotFound)
             call.respond(HttpStatusCode.OK, contribution)
         }
         get("/contributions", {

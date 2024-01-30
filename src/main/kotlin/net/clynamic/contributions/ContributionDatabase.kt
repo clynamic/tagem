@@ -1,41 +1,33 @@
 package net.clynamic.contributions
 
-import net.clynamic.common.ServiceTable
-import net.clynamic.common.SqlService
+import net.clynamic.common.IntServiceTable
+import net.clynamic.common.IntSqlService
+import net.clynamic.common.instant
 import net.clynamic.common.setAll
 import net.clynamic.projects.ProjectsService
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.andWhere
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
+import java.time.Instant
 
 class ContributionsService(database: Database) :
-    SqlService<ContributionRequest, Contribution, ContributionUpdate, ContributionId, ContributionsService.Contributions>(
+    IntSqlService<ContributionRequest, Contribution, Nothing, ContributionsService.Contributions>(
         database
     ) {
-    object Contributions : ServiceTable<ContributionId>() {
-        val projectId = integer("projectId").references(
+    object Contributions : IntServiceTable() {
+        val projectId = integer("project_id").references(
             ProjectsService.Projects.id,
             onDelete = ReferenceOption.CASCADE
         )
-        val userId = integer("userId").references(
+        val userId = integer("user_id").references(
             ProjectsService.Projects.id,
             onDelete = ReferenceOption.CASCADE
         )
-        val changes = integer("changes")
-
-        override fun selector(id: ContributionId): Op<Boolean> =
-            projectId.eq(id.projectId) and userId.eq(id.userId)
-
-        override fun toId(row: ResultRow): ContributionId = ContributionId(
-            projectId = row[projectId],
-            userId = row[userId]
-        )
+        val postId = integer("post_id")
+        val createdOn = instant("created_on")
     }
 
     override val table: Contributions
@@ -43,30 +35,25 @@ class ContributionsService(database: Database) :
 
     override fun toModel(row: ResultRow): Contribution {
         return Contribution(
+            id = row[Contributions.id],
             projectId = row[Contributions.projectId],
             userId = row[Contributions.userId],
-            changes = row[Contributions.changes]
+            postId = row[Contributions.postId],
+            createdOn = row[Contributions.createdOn],
         )
     }
 
-    override fun fromUpdate(statement: UpdateBuilder<*>, update: ContributionUpdate) {
-        statement.setAll {
-            Contributions.changes set update.changes
-        }
+    override fun fromUpdate(statement: UpdateBuilder<*>, update: Nothing) {
+        // No-op
     }
 
     override fun fromRequest(statement: UpdateBuilder<*>, request: ContributionRequest) {
         statement.setAll {
             Contributions.projectId set request.projectId
             Contributions.userId set request.userId
-            Contributions.changes set request.changes
+            Contributions.postId set request.postId
+            Contributions.createdOn set Instant.now()
         }
-    }
-
-    suspend fun increment(id: ContributionId): Unit = dbQuery {
-        read(id)?.let { contribution ->
-            update(id, ContributionUpdate(contribution.changes + 1))
-        } ?: create(ContributionRequest(id.projectId, id.userId, 1))
     }
 
     suspend fun page(
@@ -76,10 +63,10 @@ class ContributionsService(database: Database) :
         order: SortOrder? = null,
         projectId: Int? = null,
         userId: Int? = null
-    ) = dbQuery {
+    ): List<Contribution> = dbQuery {
         query(page, size, sort, order)
             .let { base -> projectId?.let { base.andWhere { table.projectId eq it } } ?: base }
             .let { base -> userId?.let { base.andWhere { table.userId eq it } } ?: base }
-            .map { toModel(it) }
+            .allToModel()
     }
 }

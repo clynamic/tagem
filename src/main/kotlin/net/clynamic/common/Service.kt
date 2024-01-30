@@ -63,6 +63,9 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
         return rows.map(::toModel)
     }
 
+    internal fun Query.toModel(): Model? = mapNotNull(::toModel).singleOrNull()
+    internal fun Query.allToModel(): List<Model> = allToModel(toList())
+
     abstract fun fromRequest(statement: UpdateBuilder<*>, request: Request)
     abstract fun fromUpdate(statement: UpdateBuilder<*>, update: Update)
 
@@ -105,7 +108,7 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
         sort: String? = null,
         order: SortOrder? = null
     ): List<Model> = dbQuery {
-        allToModel(query(page, size, sort, order).toList())
+        query(page, size, sort, order).allToModel()
     }
 
     override suspend fun page(page: Int?, size: Int?): List<Model> = dbQuery {
