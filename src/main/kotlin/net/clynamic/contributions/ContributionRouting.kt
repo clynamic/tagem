@@ -5,6 +5,7 @@ import io.github.smiley4.ktorswaggerui.dsl.post
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
+import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
@@ -17,26 +18,6 @@ fun Application.configureContributionsRouting() {
     val service = ContributionsService(attributes[DATABASE_KEY])
 
     routing {
-        post("/contributions", {
-            tags = listOf("contributions")
-            description = "Create a contribution"
-            request {
-                body<ContributionRequest> {
-                    description = "New contribution properties"
-                }
-            }
-            response {
-                HttpStatusCode.Created to {
-                    body<Int> {
-                        description = "The new contribution ID"
-                    }
-                }
-            }
-        }) {
-            val contributionId = call.receive<ContributionRequest>()
-            val id = service.create(contributionId)
-            call.respond(HttpStatusCode.Created, id)
-        }
         get("/contributions/{id}", {
             tags = listOf("contributions")
             description = "Get a contribution by ID"
@@ -82,6 +63,29 @@ fun Application.configureContributionsRouting() {
             val project = call.parameters["project"]?.toIntOrNull()
             val projects = service.page(page, size, sort, order, user, project)
             call.respond(HttpStatusCode.OK, projects)
+        }
+        authenticate {
+            post("/contributions", {
+                tags = listOf("contributions")
+                description = "Create a contribution"
+                securitySchemeName = "jwt"
+                request {
+                    body<ContributionRequest> {
+                        description = "New contribution properties"
+                    }
+                }
+                response {
+                    HttpStatusCode.Created to {
+                        body<Int> {
+                            description = "The new contribution ID"
+                        }
+                    }
+                }
+            }) {
+                val contributionId = call.receive<ContributionRequest>()
+                val id = service.create(contributionId)
+                call.respond(HttpStatusCode.Created, id)
+            }
         }
     }
 }

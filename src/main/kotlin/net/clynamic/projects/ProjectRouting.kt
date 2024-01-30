@@ -8,6 +8,7 @@ import io.github.smiley4.ktorswaggerui.dsl.put
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
+import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
@@ -20,27 +21,6 @@ fun Application.configureProjectsRouting() {
     val service = ProjectsService(attributes[DATABASE_KEY])
 
     routing {
-        post("/projects", {
-            tags = listOf("projects")
-            description = "Create a project"
-            request {
-                body<ProjectRequest> {
-                    description = "New project properties"
-                }
-            }
-            response {
-                HttpStatusCode.Created to {
-                    body<Int> {
-                        description = "The new project ID"
-                    }
-                }
-            }
-        }) {
-            val request = call.receive<ProjectRequest>()
-            val id = service.create(request)
-            call.response.headers.append("Location", "/projects/${id}")
-            call.respond(HttpStatusCode.Created, id)
-        }
         get("/projects/{id}", {
             tags = listOf("projects")
             description = "Get a project by ID"
@@ -83,63 +63,90 @@ fun Application.configureProjectsRouting() {
             val projects = service.page(page, size, sort, order, user)
             call.respond(HttpStatusCode.OK, projects)
         }
-        put("/projects/{id}", {
-            tags = listOf("projects")
-            description = "Update a project by ID"
-            request {
-                pathParameter<Int>("id") { description = "The project ID" }
-                body<ProjectUpdate> {
-                    description = "New project properties"
+        authenticate {
+            post("/projects", {
+                tags = listOf("projects")
+                description = "Create a project"
+                securitySchemeName = "jwt"
+                request {
+                    body<ProjectRequest> {
+                        description = "New project properties"
+                    }
                 }
-            }
-            response {
-                HttpStatusCode.NoContent to {
-                    description = "Project updated"
+                response {
+                    HttpStatusCode.Created to {
+                        body<Int> {
+                            description = "The new project ID"
+                        }
+                    }
                 }
+            }) {
+                val request = call.receive<ProjectRequest>()
+                val id = service.create(request)
+                call.response.headers.append("Location", "/projects/${id}")
+                call.respond(HttpStatusCode.Created, id)
             }
-        }) {
-            val id = call.parameters["id"]?.toIntOrNull()
-                ?: return@put call.respond(HttpStatusCode.BadRequest)
+            put("/projects/{id}", {
+                tags = listOf("projects")
+                description = "Update a project by ID"
+                securitySchemeName = "jwt"
+                request {
+                    pathParameter<Int>("id") { description = "The project ID" }
+                    body<ProjectUpdate> {
+                        description = "New project properties"
+                    }
+                }
+                response {
+                    HttpStatusCode.NoContent to {
+                        description = "Project updated"
+                    }
+                }
+            }) {
+                val id = call.parameters["id"]?.toIntOrNull()
+                    ?: return@put call.respond(HttpStatusCode.BadRequest)
 
-            val update = call.receive<ProjectUpdate>()
-            service.update(id, update)
-            call.respond(HttpStatusCode.NoContent)
-        }
-        delete("/projects/{id}", {
-            tags = listOf("projects")
-            description = "Delete a project by ID"
-            request {
-                pathParameter<Int>("id") { description = "The project ID" }
+                val update = call.receive<ProjectUpdate>()
+                service.update(id, update)
+                call.respond(HttpStatusCode.NoContent)
             }
-            response {
-                HttpStatusCode.NoContent to {
-                    description = "Project deleted"
+            delete("/projects/{id}", {
+                tags = listOf("projects")
+                description = "Delete a project by ID"
+                securitySchemeName = "jwt"
+                request {
+                    pathParameter<Int>("id") { description = "The project ID" }
                 }
-            }
-        }) {
-            val id = call.parameters["id"]?.toIntOrNull()
-                ?: return@delete call.respond(HttpStatusCode.BadRequest)
-
-            service.update(id, ProjectUpdate(isDeleted = true))
-            call.respond(HttpStatusCode.NoContent)
-        }
-        patch("/projects/{id}/restore", {
-            tags = listOf("projects")
-            description = "Restore a project by ID"
-            request {
-                pathParameter<Int>("id") { description = "The project ID" }
-            }
-            response {
-                HttpStatusCode.NoContent to {
-                    description = "Project restored"
+                response {
+                    HttpStatusCode.NoContent to {
+                        description = "Project deleted"
+                    }
                 }
-            }
-        }) {
-            val id = call.parameters["id"]?.toIntOrNull()
-                ?: return@patch call.respond(HttpStatusCode.BadRequest)
+            }) {
+                val id = call.parameters["id"]?.toIntOrNull()
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest)
 
-            service.update(id, ProjectUpdate(isDeleted = false))
-            call.respond(HttpStatusCode.NoContent)
+                service.update(id, ProjectUpdate(isDeleted = true))
+                call.respond(HttpStatusCode.NoContent)
+            }
+            patch("/projects/{id}/restore", {
+                tags = listOf("projects")
+                description = "Restore a project by ID"
+                securitySchemeName = "jwt"
+                request {
+                    pathParameter<Int>("id") { description = "The project ID" }
+                }
+                response {
+                    HttpStatusCode.NoContent to {
+                        description = "Project restored"
+                    }
+                }
+            }) {
+                val id = call.parameters["id"]?.toIntOrNull()
+                    ?: return@patch call.respond(HttpStatusCode.BadRequest)
+
+                service.update(id, ProjectUpdate(isDeleted = false))
+                call.respond(HttpStatusCode.NoContent)
+            }
         }
     }
 }

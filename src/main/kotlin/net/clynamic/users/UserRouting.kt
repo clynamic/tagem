@@ -151,7 +151,6 @@ fun Application.configureUsersRouting() {
                     tags = listOf("users")
                     description = "Update a user's rank"
                     securitySchemeName = "jwt"
-                    
                     request {
                         pathParameter<Int>("id") { description = "The user ID" }
                         body<UserRank> {
