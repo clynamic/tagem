@@ -13,9 +13,9 @@ fun Application.configureSwagger() {
             forwardRoot = true
         }
         info {
-            title = "Tag 'em API"
+            title = "Tag 'Em API"
             version = "1.0.0"
-            description = "API for Tag 'em, the backend for TagMe!"
+            description = "API for Tag 'Em, the backend for TagMe!"
         }
         securityScheme("jwt") {
             type = AuthType.HTTP
