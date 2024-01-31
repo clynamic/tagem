@@ -160,7 +160,7 @@ fun Application.configureUsersRouting() {
             call.respond(HttpStatusCode.OK, users)
         }
         authenticate {
-            authorise({
+            authorize({
                 ranked(UserRank.Admin)
             }) {
                 patch("/users/{id}/rank", {

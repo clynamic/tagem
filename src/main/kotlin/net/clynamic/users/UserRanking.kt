@@ -163,7 +163,7 @@ val RanksInterceptors: RouteScopedPlugin<RanksInterceptorConfig> =
         }
     }
 
-fun Route.authorise(block: RankConfig.() -> Unit, build: Route.() -> Unit): Route {
+fun Route.authorize(block: RankConfig.() -> Unit, build: Route.() -> Unit): Route {
     val permission = RankConfig().apply(block)
     val permissionsRoute = createChild(RanksRouteSelector(permission.entries))
     permissionsRoute.install(RanksInterceptors) {

@@ -16,7 +16,7 @@ import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.getPageAndSize
 import net.clynamic.common.getSortAndOrder
 import net.clynamic.users.UserRank
-import net.clynamic.users.authorise
+import net.clynamic.users.authorize
 import org.jetbrains.exposed.sql.SortOrder
 import java.time.Duration
 import java.time.Instant
@@ -96,7 +96,7 @@ fun Application.configureCommentsRouting() {
                 call.response.headers.append("Location", "/comments/${id}")
                 call.respond(HttpStatusCode.Created, id)
             }
-            authorise({
+            authorize({
                 rankedOrHigher(UserRank.Member) { userId, commentId ->
                     service.read(commentId)?.userId == userId
                 }
@@ -142,7 +142,7 @@ fun Application.configureCommentsRouting() {
                     }
                 }
             }
-            authorise({
+            authorize({
                 // TODO: add hiddenBy ID to comment model, and add it to the ownership check
                 rankedOrHigher(UserRank.Member) { userId, commentId ->
                     service.read(commentId)?.userId == userId

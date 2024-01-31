@@ -16,7 +16,7 @@ import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.getPageAndSize
 import net.clynamic.common.getSortAndOrder
 import net.clynamic.users.UserRank
-import net.clynamic.users.authorise
+import net.clynamic.users.authorize
 import org.jetbrains.exposed.sql.SortOrder
 
 fun Application.configureProjectsRouting() {
@@ -66,7 +66,7 @@ fun Application.configureProjectsRouting() {
             call.respond(HttpStatusCode.OK, projects)
         }
         authenticate {
-            authorise({
+            authorize({
                 rankedOrHigher(UserRank.Privileged)
             }) {
                 post("/projects", {
@@ -92,7 +92,7 @@ fun Application.configureProjectsRouting() {
                     call.respond(HttpStatusCode.Created, id)
                 }
             }
-            authorise({
+            authorize({
                 ranked(UserRank.Privileged) { userId, projectId ->
                     service.read(projectId)?.let { it.userId == userId }
                 }
