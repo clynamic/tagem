@@ -5,14 +5,12 @@ import io.github.smiley4.ktorswaggerui.dsl.get
 import io.github.smiley4.ktorswaggerui.dsl.patch
 import io.github.smiley4.ktorswaggerui.dsl.post
 import io.github.smiley4.ktorswaggerui.dsl.put
-import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
 import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.getPageAndSize
@@ -91,7 +89,7 @@ fun Application.configureProjectsRouting() {
                     val request = call.receive<ProjectRequest>()
                     val id = service.create(request)
                     call.response.headers.append("Location", "/projects/${id}")
-                    call.respondText(id.toString(), ContentType.Text.Plain, HttpStatusCode.Created)
+                    call.respond(HttpStatusCode.Created, id)
                 }
             }
             authorise({
