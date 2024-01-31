@@ -16,7 +16,6 @@ data class CommentRequest(
     val projectId: Int,
     val userId: Int,
     val content: String,
-    val isHidden: Boolean,
 )
 
 data class CommentUpdate(

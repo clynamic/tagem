@@ -13,7 +13,7 @@ import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.getPageAndSize
 import net.clynamic.common.getSortAndOrder
 import net.clynamic.users.UserRank
-import net.clynamic.users.permissions
+import net.clynamic.users.authorise
 import org.jetbrains.exposed.sql.SortOrder
 
 fun Application.configureContributionsRouting() {
@@ -67,7 +67,7 @@ fun Application.configureContributionsRouting() {
             call.respond(HttpStatusCode.OK, projects)
         }
         authenticate {
-            permissions({
+            authorise({
                 rankedOrHigher(UserRank.Member)
             }) {
                 post("/contributions", {

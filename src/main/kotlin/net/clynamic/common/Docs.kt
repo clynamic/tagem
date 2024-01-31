@@ -5,6 +5,7 @@ import io.github.smiley4.ktorswaggerui.dsl.AuthScheme
 import io.github.smiley4.ktorswaggerui.dsl.AuthType
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import net.clynamic.users.RanksRouteSelector
 
 fun Application.configureSwagger() {
     install(SwaggerUI) {
@@ -21,5 +22,8 @@ fun Application.configureSwagger() {
             scheme = AuthScheme.BEARER
             bearerFormat = "JWT"
         }
+        ignoredRouteSelectors = ignoredRouteSelectors + listOf(
+            RanksRouteSelector::class
+        )
     }
 }

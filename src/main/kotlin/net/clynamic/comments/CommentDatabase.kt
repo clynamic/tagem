@@ -42,19 +42,19 @@ class CommentsService(database: Database) :
 
     override fun fromUpdate(statement: UpdateStatement, update: CommentUpdate) {
         statement.setAll {
-            Comments.content to update.content
-            Comments.isHidden to update.isHidden
-            Comments.editedOn to update.editedOn
+            Comments.content set update.content
+            Comments.isHidden set update.isHidden
+            Comments.editedOn set update.editedOn
         }
     }
 
     override fun fromRequest(statement: InsertStatement<*>, request: CommentRequest) {
         statement.setAll {
-            Comments.projectId to request.projectId
-            Comments.userId to request.userId
-            Comments.content to request.content
-            Comments.isHidden to request.isHidden
-            Comments.addedOn to Instant.now()
+            Comments.projectId set request.projectId
+            Comments.userId set request.userId
+            Comments.content set request.content
+            Comments.isHidden set false
+            Comments.addedOn set Instant.now()
         }
     }
 

@@ -5,18 +5,20 @@ import io.github.smiley4.ktorswaggerui.dsl.get
 import io.github.smiley4.ktorswaggerui.dsl.patch
 import io.github.smiley4.ktorswaggerui.dsl.post
 import io.github.smiley4.ktorswaggerui.dsl.put
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.getPageAndSize
 import net.clynamic.common.getSortAndOrder
 import net.clynamic.users.UserRank
-import net.clynamic.users.permissions
+import net.clynamic.users.authorise
 import org.jetbrains.exposed.sql.SortOrder
 import java.time.Duration
 import java.time.Instant
@@ -94,9 +96,9 @@ fun Application.configureCommentsRouting() {
                 val comment = call.receive<CommentRequest>()
                 val id = service.create(comment)
                 call.response.headers.append("Location", "/comments/${id}")
-                call.respond(HttpStatusCode.Created, id)
+                call.respondText(id.toString(), ContentType.Text.Plain, HttpStatusCode.Created)
             }
-            permissions({
+            authorise({
                 rankedOrHigher(UserRank.Member) { userId, commentId ->
                     service.read(commentId)?.userId == userId
                 }
@@ -142,7 +144,7 @@ fun Application.configureCommentsRouting() {
                     }
                 }
             }
-            permissions({
+            authorise({
                 // TODO: add hiddenBy ID to comment model, and add it to the ownership check
                 rankedOrHigher(UserRank.Member) { userId, commentId ->
                     service.read(commentId)?.userId == userId
