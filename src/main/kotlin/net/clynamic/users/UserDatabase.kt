@@ -11,7 +11,6 @@ import org.jetbrains.exposed.sql.statements.UpdateStatement
 class UsersService(database: Database) :
     IntSqlService<UserRequest, User, UserUpdate, UsersService.Users>(database) {
     object Users : IntServiceTable() {
-        // override val id = integer("id")
         val name = varchar("name", 32)
         val rank = enumeration<UserRank>("rank")
         val strikes = integer("strikes")
