@@ -108,7 +108,7 @@ fun Application.configureCommentsRouting() {
             }) {
                 put("/comments/{id}", {
                     tags = listOf("comments")
-                    description = "Update a comment by ID"
+                    description = "Edit a comment by ID"
                     securitySchemeName = "jwt"
                     request {
                         pathParameter<Int>("id") { description = "The comment ID" }
@@ -118,7 +118,7 @@ fun Application.configureCommentsRouting() {
                     }
                     response {
                         HttpStatusCode.NoContent to {
-                            description = "Comment updated"
+                            description = "Comment edited"
                         }
                     }
                 }) {
