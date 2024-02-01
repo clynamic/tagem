@@ -7,7 +7,7 @@ data class Comment(
     val projectId: Int,
     val userId: Int,
     val content: String,
-    val isHidden: Boolean,
+    val hiddenBy: Int?,
     val addedOn: Instant,
     val editedOn: Instant?,
 )
@@ -20,6 +20,6 @@ data class CommentRequest(
 
 data class CommentUpdate(
     val content: String? = null,
-    val isHidden: Boolean? = null,
+    val hiddenBy: Int? = null,
     val editedOn: Instant? = null,
 )

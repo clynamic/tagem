@@ -9,12 +9,14 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.getPageAndSize
 import net.clynamic.common.getSortAndOrder
+import net.clynamic.users.UserPrincipal
 import net.clynamic.users.UserRank
 import net.clynamic.users.authorize
 import org.jetbrains.exposed.sql.SortOrder
@@ -42,9 +44,9 @@ fun Application.configureCommentsRouting() {
         }) {
             val id = call.parameters["id"]?.toIntOrNull()
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
-
-            val project = service.read(id) ?: return@get call.respond(HttpStatusCode.NotFound)
-
+            val hiddenComments = call.hiddenComments()
+            val project =
+                service.read(id, hiddenComments) ?: return@get call.respond(HttpStatusCode.NotFound)
             call.respond(HttpStatusCode.OK, project)
         }
         get("/comments", {
@@ -70,7 +72,8 @@ fun Application.configureCommentsRouting() {
             val (sort, order) = call.getSortAndOrder()
             val user = call.parameters["user"]?.toIntOrNull()
             val project = call.parameters["project"]?.toIntOrNull()
-            val projects = service.page(page, size, sort, order, user, project)
+            val hiddenComments = call.hiddenComments()
+            val projects = service.page(page, size, sort, order, user, project, hiddenComments)
             call.respond(HttpStatusCode.OK, projects)
         }
         authenticate {
@@ -98,7 +101,9 @@ fun Application.configureCommentsRouting() {
             }
             authorize({
                 rankedOrHigher(UserRank.Member) { userId, commentId ->
-                    service.read(commentId)?.userId == userId
+                    service.read(commentId)?.let {
+                        it.userId == userId && (it.hiddenBy == null || it.hiddenBy == userId)
+                    }
                 }
             }) {
                 put("/comments/{id}", {
@@ -143,9 +148,14 @@ fun Application.configureCommentsRouting() {
                 }
             }
             authorize({
-                // TODO: add hiddenBy ID to comment model, and add it to the ownership check
                 rankedOrHigher(UserRank.Member) { userId, commentId ->
-                    service.read(commentId)?.userId == userId
+                    service.read(commentId)?.let {
+                        if (it.hiddenBy == null) {
+                            it.userId == userId
+                        } else {
+                            it.hiddenBy == userId
+                        }
+                    }
                 }
                 rankedOrHigher(UserRank.Janitor)
             }) {
@@ -164,8 +174,10 @@ fun Application.configureCommentsRouting() {
                 }) {
                     val id = call.parameters["id"]?.toIntOrNull()
                         ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    val userId = call.principal<UserPrincipal>()?.id
+                        ?: return@delete call.respond(HttpStatusCode.Unauthorized)
 
-                    service.update(id, CommentUpdate(isHidden = true))
+                    service.update(id, CommentUpdate(hiddenBy = userId))
                     call.respond(HttpStatusCode.NoContent)
                 }
                 patch("/comments/{id}/restore", {
@@ -184,7 +196,7 @@ fun Application.configureCommentsRouting() {
                     val id = call.parameters["id"]?.toIntOrNull()
                         ?: return@patch call.respond(HttpStatusCode.BadRequest)
 
-                    service.update(id, CommentUpdate(isHidden = false))
+                    service.update(id, CommentUpdate(hiddenBy = null))
                     call.respond(HttpStatusCode.NoContent)
                 }
             }

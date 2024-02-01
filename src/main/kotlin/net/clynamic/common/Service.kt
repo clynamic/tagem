@@ -60,7 +60,7 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
         newSuspendedTransaction(Dispatchers.IO) { block() }
 
     abstract fun toModel(row: ResultRow): Model
-    internal fun allToModel(rows: List<ResultRow>): List<Model> {
+    open fun allToModel(rows: List<ResultRow>): List<Model> {
         return rows.map(::toModel)
     }
 
@@ -82,7 +82,7 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
             .singleOrNull()
     }
 
-    internal suspend fun query(
+    internal open suspend fun query(
         page: Int? = null,
         size: Int? = null,
         sort: String? = null,

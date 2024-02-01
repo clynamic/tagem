@@ -115,7 +115,7 @@ val RanksInterceptors: RouteScopedPlugin<RanksInterceptorConfig> =
             val hasValidRank = pluginConfig.entries.any { entry ->
                 logger.trace("Ranking ${call.request.local.uri} against ${entry.toShortString()}")
                 val isRank = rank == entry.rank
-                val isOrHigher = entry.orHigher && rank.ordinal >= entry.rank.ordinal
+                val isOrHigher = entry.orHigher && rank >= entry.rank
                 val hasOwnership = if (entry.ownershipCheck != null) {
                     val id = call.parameters["id"]?.toIntOrNull()
                     if (id == null) {
