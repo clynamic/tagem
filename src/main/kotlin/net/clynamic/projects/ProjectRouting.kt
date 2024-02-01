@@ -100,25 +100,36 @@ fun Application.configureProjectsRouting() {
             }) {
                 put("/projects/{id}", {
                     tags = listOf("projects")
-                    description = "Update a project by ID"
+                    description = "Edit a project by ID"
                     securitySchemeName = "jwt"
                     request {
                         pathParameter<Int>("id") { description = "The project ID" }
-                        body<ProjectUpdate> {
+                        body<ProjectEdit> {
                             description = "New project properties"
                         }
                     }
                     response {
                         HttpStatusCode.NoContent to {
-                            description = "Project updated"
+                            description = "Project edited"
                         }
                     }
                 }) {
                     val id = call.parameters["id"]?.toIntOrNull()
                         ?: return@put call.respond(HttpStatusCode.BadRequest, "Invalid ID")
 
-                    val update = call.receive<ProjectUpdate>()
-                    service.update(id, update)
+                    val edit = call.receive<ProjectEdit>()
+                    service.update(
+                        id,
+                        ProjectUpdate(
+                            name = edit.name,
+                            description = edit.description,
+                            guidelines = edit.guidelines,
+                            tags = edit.tags,
+                            mode = edit.mode,
+                            options = edit.options,
+                            conditionals = edit.conditionals,
+                        ),
+                    )
                     call.respond(HttpStatusCode.NoContent)
                 }
                 delete("/projects/{id}", {
