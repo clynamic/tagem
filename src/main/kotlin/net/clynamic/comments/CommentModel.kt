@@ -23,3 +23,7 @@ data class CommentUpdate(
     val hiddenBy: Int? = null,
     val editedOn: Instant? = null,
 )
+
+data class CommentEdit(
+    val content: String? = null,
+)

@@ -112,7 +112,7 @@ fun Application.configureCommentsRouting() {
                     securitySchemeName = "jwt"
                     request {
                         pathParameter<Int>("id") { description = "The comment ID" }
-                        body<CommentUpdate> {
+                        body<CommentEdit> {
                             description = "New comment properties"
                         }
                     }
@@ -126,20 +126,19 @@ fun Application.configureCommentsRouting() {
                         ?: return@put call.respond(HttpStatusCode.BadRequest)
 
                     service.dbQuery {
-                        var update = call.receive<CommentUpdate>()
+                        val edit = call.receive<CommentEdit>()
 
                         val comment =
                             service.read(id) ?: return@dbQuery call.respond(HttpStatusCode.NotFound)
 
-                        // TODO: instead of overwriting the editedOn field, use separate model?
-                        update =
+                        val update =
                             if (comment.addedOn.plus(Duration.ofMinutes(5))
                                     .isBefore(Instant.now())
                             ) {
-                                update.copy(editedOn = Instant.now())
+                                CommentUpdate(content = edit.content, editedOn = Instant.now())
                             } else {
                                 // Comments younger than 5 minutes can be ninja edited
-                                update.copy(editedOn = null)
+                                CommentUpdate(content = edit.content)
                             }
 
                         service.update(id, update)
