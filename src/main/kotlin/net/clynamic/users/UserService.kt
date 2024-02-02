@@ -3,6 +3,7 @@ package net.clynamic.users
 import net.clynamic.common.IntServiceTable
 import net.clynamic.common.IntSqlService
 import net.clynamic.common.setAll
+import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.InsertStatement
@@ -11,6 +12,7 @@ import org.jetbrains.exposed.sql.statements.UpdateStatement
 class UsersService(database: Database) :
     IntSqlService<UserRequest, User, UserUpdate, UsersService.Users>(database) {
     object Users : IntServiceTable() {
+        override fun getIdColumn(): Column<Int> = integer("id")
         val name = varchar("name", 32)
         val rank = enumeration<UserRank>("rank")
         val strikes = integer("strikes")

@@ -47,13 +47,15 @@ abstract class ServiceTable<Id>(name: String = "") : Table(name) {
 }
 
 abstract class IntServiceTable(name: String = "") : ServiceTable<Int>(name) {
-    var id: Column<Int>
+    val id: Column<Int>
         get() = _id
-        protected set(value) {
-            _id = value
-        }
 
-    private var _id: Column<Int> = integer("id").autoIncrement()
+    // We need to use a backing field to allow for overriding the id column
+    // And it cannot be late init because we need access to the Table functions
+    @Suppress("LeakingThis")
+    private var _id: Column<Int> = getIdColumn()
+
+    protected open fun getIdColumn(): Column<Int> = integer("id").autoIncrement()
 
     override val primaryKey: PrimaryKey?
         get() = PrimaryKey(id)
