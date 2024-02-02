@@ -15,7 +15,7 @@ import org.jetbrains.exposed.sql.statements.UpdateStatement
 import java.time.Instant
 
 class ContributionsService(database: Database) :
-    IntSqlService<ContributionRequest, Contribution, Nothing, ContributionsService.Contributions>(
+    IntSqlService<ContributionInsert, Contribution, Nothing, ContributionsService.Contributions>(
         database
     ) {
     object Contributions : IntServiceTable() {
@@ -23,6 +23,7 @@ class ContributionsService(database: Database) :
             ProjectsService.Projects.id,
             onDelete = ReferenceOption.CASCADE
         )
+        val projectVersion = integer("project_version")
         val userId = integer("user_id").references(
             ProjectsService.Projects.id,
             onDelete = ReferenceOption.CASCADE
@@ -34,27 +35,41 @@ class ContributionsService(database: Database) :
     override val table: Contributions
         get() = Contributions
 
-    override fun toModel(row: ResultRow): Contribution {
-        return Contribution(
-            id = row[Contributions.id],
-            projectId = row[Contributions.projectId],
-            userId = row[Contributions.userId],
-            postId = row[Contributions.postId],
-            createdAt = row[Contributions.createdAt],
-        )
-    }
+    override fun toModel(row: ResultRow): Contribution = Contribution(
+        id = row[Contributions.id],
+        projectId = row[Contributions.projectId],
+        projectVersion = row[Contributions.projectVersion],
+        userId = row[Contributions.userId],
+        postId = row[Contributions.postId],
+        createdAt = row[Contributions.createdAt],
+    )
 
     override fun fromUpdate(statement: UpdateStatement, update: Nothing) {
         throw UnsupportedOperationException("Cannot update a contribution")
     }
 
-    override fun fromRequest(statement: InsertStatement<*>, request: ContributionRequest) {
+    override fun fromRequest(statement: InsertStatement<*>, request: ContributionInsert) {
         statement.setAll {
             Contributions.projectId set request.projectId
+            Contributions.projectVersion set request.projectVersion
             Contributions.userId set request.userId
             Contributions.postId set request.postId
             Contributions.createdAt set Instant.now()
         }
+    }
+
+    private val projectService = ProjectsService(database)
+
+    suspend fun create(request: ContributionRequest): Int {
+        val projectVersion = projectService.read(request.projectId).version
+        return create(
+            ContributionInsert(
+                request.projectId,
+                projectVersion,
+                request.userId,
+                request.postId,
+            )
+        )
     }
 
     suspend fun page(

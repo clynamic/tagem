@@ -87,8 +87,8 @@ fun Application.configureContributionsRouting() {
                         }
                     }
                 }) {
-                    val contributionId = call.receive<ContributionRequest>()
-                    val id = service.create(contributionId)
+                    val request = call.receive<ContributionRequest>()
+                    val id = service.create(request)
                     call.respond(HttpStatusCode.Created, id)
                 }
             }

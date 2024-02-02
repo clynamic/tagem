@@ -167,4 +167,52 @@ fun Application.configureProjectsRouting() {
             }
         }
     }
+
+    val versionsService = ProjectVersionsService(attributes[DATABASE_KEY])
+
+    routing {
+        get("/project-versions/{id}", {
+            tags = listOf("project-versions")
+            description = "Get a project version by ID"
+            request {
+                pathParameter<Int>("id") { description = "The project version ID" }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    body<Project> {}
+                }
+                HttpStatusCode.NotFound to {
+                    description = "Project not found"
+                }
+            }
+        }) {
+            val id = call.parameters.id
+            val projectVersion = versionsService.read(id)
+            call.respond(HttpStatusCode.OK, projectVersion)
+        }
+        get("/project-versions", {
+            tags = listOf("project-versions")
+            description = "Get a page of project versions"
+            request {
+                queryParameter<Int?>("page") { description = "The page number" }
+                queryParameter<Int?>("size") { description = "The page size" }
+                queryParameter<String?>("sort") { description = "The sort field" }
+                queryParameter<SortOrder?>("order") { description = "The sort order" }
+                queryParameter<Int?>("project") {
+                    description = "Project ID to filter by association"
+                }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    body<List<Project>> {}
+                }
+            }
+        }) {
+            val (page, size) = call.getPageAndSize()
+            val (sort, order) = call.getSortAndOrder()
+            val project = call.parameters["project"]?.toIntOrNull()
+            val projectVersions = versionsService.page(page, size, sort, order, project)
+            call.respond(HttpStatusCode.OK, projectVersions)
+        }
+    }
 }
