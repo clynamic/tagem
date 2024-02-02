@@ -7,7 +7,7 @@ data class Contribution(
     val projectId: Int,
     val userId: Int,
     val postId: Int,
-    val createdOn: Instant,
+    val createdAt: Instant,
 )
 
 data class ContributionRequest(

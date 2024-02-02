@@ -28,7 +28,7 @@ class ContributionsService(database: Database) :
             onDelete = ReferenceOption.CASCADE
         )
         val postId = integer("post_id")
-        val createdOn = instant("created_on")
+        val createdAt = instant("created_at")
     }
 
     override val table: Contributions
@@ -40,7 +40,7 @@ class ContributionsService(database: Database) :
             projectId = row[Contributions.projectId],
             userId = row[Contributions.userId],
             postId = row[Contributions.postId],
-            createdOn = row[Contributions.createdOn],
+            createdAt = row[Contributions.createdAt],
         )
     }
 
@@ -53,7 +53,7 @@ class ContributionsService(database: Database) :
             Contributions.projectId set request.projectId
             Contributions.userId set request.userId
             Contributions.postId set request.postId
-            Contributions.createdOn set Instant.now()
+            Contributions.createdAt set Instant.now()
         }
     }
 

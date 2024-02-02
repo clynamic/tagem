@@ -23,8 +23,8 @@ class CommentsService(database: Database) :
         val userId = integer("user_id").references(UsersService.Users.id)
         val content = text("content")
         val hiddenBy = integer("hidden_by").references(UsersService.Users.id).nullable()
-        val addedOn = instant("added_on")
-        val editedOn = instant("edited_on").nullable()
+        val createdAt = instant("created_at")
+        val updatedAt = instant("updated_at").nullable()
     }
 
     override val table: Comments
@@ -37,8 +37,8 @@ class CommentsService(database: Database) :
             projectId = row[Comments.projectId],
             content = row[Comments.content],
             hiddenBy = row[Comments.hiddenBy],
-            addedOn = row[Comments.addedOn],
-            editedOn = row[Comments.editedOn],
+            createdAt = row[Comments.createdAt],
+            updatedAt = row[Comments.updatedAt],
         )
     }
 
@@ -46,7 +46,7 @@ class CommentsService(database: Database) :
         statement.setAll {
             Comments.content set update.content
             Comments.hiddenBy set update.hiddenBy
-            Comments.editedOn set update.editedOn
+            Comments.updatedAt set update.editedOn
         }
     }
 
@@ -55,7 +55,7 @@ class CommentsService(database: Database) :
             Comments.projectId set request.projectId
             Comments.userId set request.userId
             Comments.content set request.content
-            Comments.addedOn set Instant.now()
+            Comments.createdAt set Instant.now()
         }
     }
 

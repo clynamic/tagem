@@ -8,8 +8,8 @@ data class Comment(
     val userId: Int,
     val content: String,
     val hiddenBy: Int?,
-    val addedOn: Instant,
-    val editedOn: Instant?,
+    val createdAt: Instant,
+    val updatedAt: Instant?,
 )
 
 data class CommentRequest(

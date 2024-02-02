@@ -132,7 +132,7 @@ fun Application.configureCommentsRouting() {
                             service.read(id) ?: return@dbQuery call.respond(HttpStatusCode.NotFound)
 
                         val update =
-                            if (comment.addedOn.plus(Duration.ofMinutes(5))
+                            if (comment.createdAt.plus(Duration.ofMinutes(5))
                                     .isBefore(Instant.now())
                             ) {
                                 CommentUpdate(content = edit.content, editedOn = Instant.now())

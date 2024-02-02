@@ -68,7 +68,7 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
         transaction(database) { SchemaUtils.create(table) }
     }
 
-    protected suspend fun <T> dbQuery(block: suspend () -> T): T =
+    suspend fun <T> dbQuery(block: suspend () -> T): T =
         newSuspendedTransaction(Dispatchers.IO) { block() }
 
     abstract fun toModel(row: ResultRow): Model
