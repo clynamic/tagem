@@ -3,6 +3,7 @@ package net.clynamic.common
 import com.fasterxml.jackson.core.util.DefaultIndenter
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter
 import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.http.ContentType
 import io.ktor.http.content.OutgoingContent
 import io.ktor.http.content.TextContent
@@ -24,6 +25,8 @@ fun Application.configureSerialization() {
                 indentObjectsWith(DefaultIndenter("  ", "\n"))
             })
             disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            registerModule(JavaTimeModule())
+            disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         }
         register(ContentType.Text.Plain, IdTextContentConverter())
     }
@@ -35,7 +38,7 @@ class IdTextContentConverter : ContentConverter {
         contentType: ContentType,
         charset: Charset,
         typeInfo: TypeInfo,
-        value: Any?
+        value: Any?,
     ): OutgoingContent? {
         return when (value) {
             is Int -> TextContent(value.toString(), contentType)
@@ -46,7 +49,7 @@ class IdTextContentConverter : ContentConverter {
     override suspend fun deserialize(
         charset: Charset,
         typeInfo: TypeInfo,
-        content: ByteReadChannel
+        content: ByteReadChannel,
     ): Any? {
         // This converter is only used for sending out IDs, so we don't need to deserialize
         return null
