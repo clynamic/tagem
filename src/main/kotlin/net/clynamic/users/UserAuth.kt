@@ -13,6 +13,7 @@ import io.ktor.server.routing.RouteSelectorEvaluation
 import io.ktor.server.routing.RoutingResolveContext
 import io.ktor.util.logging.KtorSimpleLogger
 import net.clynamic.common.DATABASE_KEY
+import net.clynamic.common.id
 
 enum class UserRank {
     /**
@@ -102,29 +103,13 @@ val RanksInterceptors: RouteScopedPlugin<RanksInterceptorConfig> =
             }
 
             val service = UsersService(call.application.attributes[DATABASE_KEY])
-
-            val rank = service.read(userId)?.rank
-            if (rank == null) {
-                logger.trace("Ranking cancelled for ${call.request.local.uri} due to missing rank")
-                return@onCallReceive call.respond(
-                    HttpStatusCode.Unauthorized,
-                    "Token User not found"
-                )
-            }
-
+            val rank = service.read(userId).rank
             val hasValidRank = pluginConfig.entries.any { entry ->
                 logger.trace("Ranking ${call.request.local.uri} against ${entry.toShortString()}")
                 val isRank = rank == entry.rank
                 val isOrHigher = entry.orHigher && rank >= entry.rank
                 val hasOwnership = if (entry.ownershipCheck != null) {
-                    val id = call.parameters["id"]?.toIntOrNull()
-                    if (id == null) {
-                        logger.trace("Ranking cancelled for ${call.request.local.uri} due to missing ID parameter")
-                        return@onCallReceive call.respond(
-                            HttpStatusCode.BadRequest,
-                            "Missing ID parameter"
-                        )
-                    }
+                    val id = call.parameters.id
                     val result = entry.ownershipCheck.invoke(userId, id)
                     if (result == null) {
                         logger.trace("Ranking cancelled for ${call.request.local.uri} due to non-existent resource")
