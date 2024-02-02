@@ -88,7 +88,7 @@ val RanksInterceptors: RouteScopedPlugin<RanksInterceptorConfig> =
         "RanksInterceptors",
         { RanksInterceptorConfig() }
     ) {
-        val logger = KtorSimpleLogger("net.clynamic.tagme.users.Ranking")
+        val logger = KtorSimpleLogger("net.clynamic.tagem.users.Ranking")
 
         onCallReceive { call ->
             if (call.isHandled) return@onCallReceive
