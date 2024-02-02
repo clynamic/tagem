@@ -8,6 +8,7 @@ import net.clynamic.common.configureAuth
 import net.clynamic.common.configureCors
 import net.clynamic.common.configureDatabase
 import net.clynamic.common.configureEnvironment
+import net.clynamic.common.configureErrors
 import net.clynamic.common.configureMonitoring
 import net.clynamic.common.configureSerialization
 import net.clynamic.common.configureSwagger
@@ -30,6 +31,7 @@ fun Application.module() {
     configureCors()
     configureAuth()
     configureSwagger()
+    configureErrors()
     configureUsersRouting()
     configureProjectsRouting()
     configureCommentsRouting()

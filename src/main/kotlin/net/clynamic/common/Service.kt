@@ -26,7 +26,8 @@ import java.time.Instant
 
 interface Service<Request, Model, Update, Id> {
     suspend fun create(request: Request): Id
-    suspend fun read(id: Id): Model?
+    suspend fun read(id: Id): Model = readOrNull(id) ?: throw NoSuchRecordException(id)
+    suspend fun readOrNull(id: Id): Model?
     suspend fun page(page: Int? = null, size: Int? = null): List<Model>
     suspend fun update(id: Id, update: Update)
     suspend fun delete(id: Id)
@@ -36,6 +37,9 @@ interface Service<Request, Model, Update, Id> {
         const val defaultSize = 20
     }
 }
+
+class NoSuchRecordException(id: Any?, type: String? = null) :
+    NoSuchElementException("No ${type ?: "record"} found for id: $id")
 
 abstract class ServiceTable<Id>(name: String = "") : Table(name) {
     abstract fun selector(id: Id): Op<Boolean>
@@ -117,7 +121,10 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
         }.resultedValues!!.single().let(table::toId)
     }
 
-    override suspend fun read(id: Id): Model? = dbQuery {
+    override suspend fun read(id: Id): Model =
+        readOrNull(id) ?: throw NoSuchRecordException(id, table.tableName)
+
+    override suspend fun readOrNull(id: Id): Model? = dbQuery {
         table.select { table.selector(id) }
             .mapNotNull(::toModel)
             .singleOrNull()
@@ -126,11 +133,12 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
     override suspend fun update(id: Id, update: Update): Unit = dbQuery {
         table.update({ table.selector(id) }) {
             fromUpdate(it, update)
-        }
+        }.let { if (it == 0) throw NoSuchRecordException(id, table.tableName) }
     }
 
     override suspend fun delete(id: Id): Unit = dbQuery {
         table.deleteWhere { table.selector(id) }
+            .let { if (it == 0) throw NoSuchRecordException(id, table.tableName) }
     }
 }
 

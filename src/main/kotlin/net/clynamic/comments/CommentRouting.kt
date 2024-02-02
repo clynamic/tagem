@@ -45,8 +45,7 @@ fun Application.configureCommentsRouting() {
             val id = call.parameters["id"]?.toIntOrNull()
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
             val hiddenComments = call.hiddenComments()
-            val project =
-                service.read(id, hiddenComments) ?: return@get call.respond(HttpStatusCode.NotFound)
+            val project = service.read(id, hiddenComments)
             call.respond(HttpStatusCode.OK, project)
         }
         get("/comments", {
@@ -101,7 +100,7 @@ fun Application.configureCommentsRouting() {
             }
             authorize({
                 rankedOrHigher(UserRank.Member) { userId, commentId ->
-                    service.read(commentId)?.let {
+                    service.read(commentId).let {
                         it.userId == userId && (it.hiddenBy == null || it.hiddenBy == userId)
                     }
                 }
@@ -128,8 +127,7 @@ fun Application.configureCommentsRouting() {
                     service.dbQuery {
                         val edit = call.receive<CommentEdit>()
 
-                        val comment =
-                            service.read(id) ?: return@dbQuery call.respond(HttpStatusCode.NotFound)
+                        val comment = service.read(id)
 
                         val update =
                             if (comment.createdAt.plus(Duration.ofMinutes(5))
@@ -148,7 +146,7 @@ fun Application.configureCommentsRouting() {
             }
             authorize({
                 rankedOrHigher(UserRank.Member) { userId, commentId ->
-                    service.read(commentId)?.let {
+                    service.read(commentId).let {
                         if (it.hiddenBy == null) {
                             it.userId == userId
                         } else {

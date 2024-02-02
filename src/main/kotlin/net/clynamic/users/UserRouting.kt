@@ -30,19 +30,15 @@ fun Application.configureUsersRouting() {
     intercept(Plugins) {
         val principal = call.authentication.principal<JWTPrincipal>()
         if (principal != null) {
-            val id = principal.getClaim("user_id", Int::class)
+            val id = principal.getClaim("user_id", Int::class) ?: return@intercept call.respond(
+                HttpStatusCode.Unauthorized,
+                "Invalid token"
+            )
 
-            if (id == null) {
-                call.respond(HttpStatusCode.Unauthorized, "Invalid token")
-                return@intercept finish()
-            }
-
-            val user = service.read(id)
-
-            if (user == null) {
-                call.respond(HttpStatusCode.Unauthorized, "Invalid token")
-                return@intercept finish()
-            }
+            val user = service.readOrNull(id) ?: return@intercept call.respond(
+                HttpStatusCode.Unauthorized,
+                "Invalid token"
+            )
 
             if (user.isBanned) {
                 call.respond(HttpStatusCode.Forbidden, "Your account has been suspended")
@@ -87,10 +83,10 @@ fun Application.configureUsersRouting() {
                 )
 
             val user = service.dbQuery {
-                var user = service.read(userInfo.id)
+                var user = service.readOrNull(userInfo.id)
                 if (user == null) {
                     val id = service.create(request)
-                    user = service.read(id)!!
+                    user = service.read(id)
                 } else {
                     user = user.copy(
                         // contribution rank or database rank, whichever is higher
@@ -132,11 +128,7 @@ fun Application.configureUsersRouting() {
                 return@get
             }
             val user = service.read(id)
-            if (user != null) {
-                call.respond(HttpStatusCode.OK, user)
-            } else {
-                call.respond(HttpStatusCode.NotFound, "User not found")
-            }
+            call.respond(HttpStatusCode.OK, user)
         }
         get("/users",
             {

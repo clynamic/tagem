@@ -2,6 +2,7 @@ package net.clynamic.comments
 
 import net.clynamic.common.IntServiceTable
 import net.clynamic.common.IntSqlService
+import net.clynamic.common.NoSuchRecordException
 import net.clynamic.common.instant
 import net.clynamic.common.setAll
 import net.clynamic.projects.ProjectsService
@@ -80,8 +81,11 @@ class CommentsService(database: Database) :
         return query(page, size, sort, order, HiddenComments.None)
     }
 
-    suspend fun read(id: Int, hiddenComments: HiddenComments = HiddenComments.None): Comment? {
-        return super.read(id).let {
+    suspend fun readOrNull(
+        id: Int,
+        hiddenComments: HiddenComments = HiddenComments.None,
+    ): Comment? {
+        return super.readOrNull(id).let {
             when (hiddenComments) {
                 is HiddenComments.None -> it?.takeIf { it.hiddenBy == null }
                 is HiddenComments.Only -> it?.takeIf { it.userId == hiddenComments.id }
@@ -90,7 +94,11 @@ class CommentsService(database: Database) :
         }
     }
 
-    override suspend fun read(id: Int): Comment? = read(id, HiddenComments.None)
+    suspend fun read(id: Int, hiddenComments: HiddenComments = HiddenComments.None): Comment {
+        return readOrNull(id, hiddenComments) ?: throw NoSuchRecordException(id, "Comment")
+    }
+
+    override suspend fun read(id: Int): Comment = read(id, HiddenComments.None)
 
     suspend fun page(
         page: Int? = null,

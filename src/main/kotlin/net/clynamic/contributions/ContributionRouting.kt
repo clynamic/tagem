@@ -37,7 +37,7 @@ fun Application.configureContributionsRouting() {
         }) {
             val id = call.parameters["id"]?.toIntOrNull()
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
-            val contribution = service.read(id) ?: return@get call.respond(HttpStatusCode.NotFound)
+            val contribution = service.read(id)
             call.respond(HttpStatusCode.OK, contribution)
         }
         get("/contributions", {

@@ -40,7 +40,7 @@ fun Application.configureProjectsRouting() {
         }) {
             val id = call.parameters["id"]?.toIntOrNull()
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
-            val project = service.read(id) ?: return@get call.respond(HttpStatusCode.NotFound)
+            val project = service.read(id)
             call.respond(HttpStatusCode.OK, project)
         }
         get("/projects", {
@@ -94,7 +94,7 @@ fun Application.configureProjectsRouting() {
             }
             authorize({
                 ranked(UserRank.Privileged) { userId, projectId ->
-                    service.read(projectId)?.let { it.userId == userId }
+                    service.read(projectId).userId == userId
                 }
                 rankedOrHigher(UserRank.Janitor)
             }) {
