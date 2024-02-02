@@ -15,6 +15,7 @@ import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.getPageAndSize
 import net.clynamic.common.getSortAndOrder
+import net.clynamic.common.id
 import net.clynamic.users.UserRank
 import net.clynamic.users.authorize
 import org.jetbrains.exposed.sql.SortOrder
@@ -38,8 +39,7 @@ fun Application.configureProjectsRouting() {
                 }
             }
         }) {
-            val id = call.parameters["id"]?.toIntOrNull()
-                ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val id = call.parameters.id
             val project = service.read(id)
             call.respond(HttpStatusCode.OK, project)
         }
@@ -114,9 +114,7 @@ fun Application.configureProjectsRouting() {
                         }
                     }
                 }) {
-                    val id = call.parameters["id"]?.toIntOrNull()
-                        ?: return@put call.respond(HttpStatusCode.BadRequest, "Invalid ID")
-
+                    val id = call.parameters.id
                     val edit = call.receive<ProjectEdit>()
                     service.update(
                         id,
@@ -145,9 +143,7 @@ fun Application.configureProjectsRouting() {
                         }
                     }
                 }) {
-                    val id = call.parameters["id"]?.toIntOrNull()
-                        ?: return@delete call.respond(HttpStatusCode.BadRequest, "Invalid ID")
-
+                    val id = call.parameters.id
                     service.update(id, ProjectUpdate(isDeleted = true))
                     call.respond(HttpStatusCode.NoContent)
                 }
@@ -164,9 +160,7 @@ fun Application.configureProjectsRouting() {
                         }
                     }
                 }) {
-                    val id = call.parameters["id"]?.toIntOrNull()
-                        ?: return@patch call.respond(HttpStatusCode.BadRequest, "Invalid ID")
-
+                    val id = call.parameters.id
                     service.update(id, ProjectUpdate(isDeleted = false))
                     call.respond(HttpStatusCode.NoContent)
                 }

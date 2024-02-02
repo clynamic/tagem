@@ -16,6 +16,7 @@ import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.getPageAndSize
 import net.clynamic.common.getSortAndOrder
+import net.clynamic.common.id
 import net.clynamic.users.UserPrincipal
 import net.clynamic.users.UserRank
 import net.clynamic.users.authorize
@@ -121,8 +122,7 @@ fun Application.configureCommentsRouting() {
                         }
                     }
                 }) {
-                    val id = call.parameters["id"]?.toIntOrNull()
-                        ?: return@put call.respond(HttpStatusCode.BadRequest)
+                    val id = call.parameters.id
 
                     service.dbQuery {
                         val edit = call.receive<CommentEdit>()
@@ -169,11 +169,8 @@ fun Application.configureCommentsRouting() {
                         }
                     }
                 }) {
-                    val id = call.parameters["id"]?.toIntOrNull()
-                        ?: return@delete call.respond(HttpStatusCode.BadRequest)
-                    val userId = call.principal<UserPrincipal>()?.id
-                        ?: return@delete call.respond(HttpStatusCode.Unauthorized)
-
+                    val id = call.parameters.id
+                    val userId = call.principal<UserPrincipal>()!!.id
                     service.update(id, CommentUpdate(hiddenBy = userId))
                     call.respond(HttpStatusCode.NoContent)
                 }
@@ -190,9 +187,7 @@ fun Application.configureCommentsRouting() {
                         }
                     }
                 }) {
-                    val id = call.parameters["id"]?.toIntOrNull()
-                        ?: return@patch call.respond(HttpStatusCode.BadRequest)
-
+                    val id = call.parameters.id
                     service.update(id, CommentUpdate(hiddenBy = null))
                     call.respond(HttpStatusCode.NoContent)
                 }

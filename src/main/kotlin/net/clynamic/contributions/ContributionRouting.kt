@@ -12,6 +12,7 @@ import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.getPageAndSize
 import net.clynamic.common.getSortAndOrder
+import net.clynamic.common.id
 import net.clynamic.users.UserRank
 import net.clynamic.users.authorize
 import org.jetbrains.exposed.sql.SortOrder
@@ -35,8 +36,7 @@ fun Application.configureContributionsRouting() {
                 }
             }
         }) {
-            val id = call.parameters["id"]?.toIntOrNull()
-                ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val id = call.parameters.id
             val contribution = service.read(id)
             call.respond(HttpStatusCode.OK, contribution)
         }

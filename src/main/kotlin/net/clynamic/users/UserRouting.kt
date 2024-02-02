@@ -20,6 +20,7 @@ import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.JWT_KEY
 import net.clynamic.common.getPageAndSize
 import net.clynamic.common.getSortAndOrder
+import net.clynamic.common.id
 import java.io.IOException
 
 fun Application.configureUsersRouting() {
@@ -122,11 +123,7 @@ fun Application.configureUsersRouting() {
                 }
             }
         }) {
-            val id = call.parameters["id"]?.toIntOrNull()
-            if (id == null) {
-                call.respond(HttpStatusCode.BadRequest, "Invalid ID")
-                return@get
-            }
+            val id = call.parameters.id
             val user = service.read(id)
             call.respond(HttpStatusCode.OK, user)
         }
@@ -174,8 +171,7 @@ fun Application.configureUsersRouting() {
                         }
                     }
                 }) {
-                    val id = call.parameters["id"]?.toIntOrNull()
-                        ?: return@patch call.respond(HttpStatusCode.BadRequest, "Invalid ID")
+                    val id = call.parameters.id
                     val rank = call.receive<UserRank>()
                     service.update(id, UserUpdate(rank = rank))
                     call.respond(HttpStatusCode.OK, "User permissions were updated")
@@ -196,8 +192,7 @@ fun Application.configureUsersRouting() {
                         }
                     }
                 }) {
-                    val id = call.parameters["id"]?.toIntOrNull()
-                        ?: return@delete call.respond(HttpStatusCode.BadRequest, "Invalid ID")
+                    val id = call.parameters.id
                     service.update(id, UserUpdate(isBanned = true))
                     call.respond(HttpStatusCode.OK, "User was banned")
                 }
@@ -217,11 +212,7 @@ fun Application.configureUsersRouting() {
                         }
                     }
                 }) {
-                    val id = call.parameters["id"]?.toIntOrNull()
-                    if (id == null) {
-                        call.respond(HttpStatusCode.BadRequest, "Invalid ID")
-                        return@patch
-                    }
+                    val id = call.parameters.id
                     service.update(id, UserUpdate(isBanned = false))
                     call.respond(HttpStatusCode.OK, "User was restored")
                 }
