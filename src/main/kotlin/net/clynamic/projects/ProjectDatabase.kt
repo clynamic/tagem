@@ -88,6 +88,6 @@ class ProjectsService(database: Database) :
     ): List<Project> = dbQuery {
         query(page, size, sort, order)
             .let { base -> user?.let { base.andWhere { table.userId eq it } } ?: base }
-            .allToModel()
+            .toModelList()
     }
 }

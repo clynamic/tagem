@@ -104,7 +104,7 @@ class CommentsService(database: Database) :
         query(page, size, sort, order, hiddenComments)
             .let { base -> user?.let { base.andWhere { table.userId eq it } } ?: base }
             .let { base -> project?.let { base.andWhere { table.projectId eq it } } ?: base }
-            .allToModel()
+            .toModelList()
     }
 }
 

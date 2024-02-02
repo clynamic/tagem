@@ -30,6 +30,11 @@ interface Service<Request, Model, Update, Id> {
     suspend fun page(page: Int? = null, size: Int? = null): List<Model>
     suspend fun update(id: Id, update: Update)
     suspend fun delete(id: Id)
+
+    companion object {
+        const val defaultPage = 0
+        const val defaultSize = 20
+    }
 }
 
 abstract class ServiceTable<Id>(name: String = "") : Table(name) {
@@ -38,7 +43,14 @@ abstract class ServiceTable<Id>(name: String = "") : Table(name) {
 }
 
 abstract class IntServiceTable(name: String = "") : ServiceTable<Int>(name) {
-    open val id = integer("id").autoIncrement()
+    var id: Column<Int>
+        get() = _id
+        protected set(value) {
+            _id = value
+        }
+
+    private var _id: Column<Int> = integer("id").autoIncrement()
+
     override val primaryKey: PrimaryKey?
         get() = PrimaryKey(id)
 
@@ -47,7 +59,7 @@ abstract class IntServiceTable(name: String = "") : ServiceTable<Int>(name) {
 }
 
 abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<Id>>(
-    database: Database
+    database: Database,
 ) : Service<Request, Model, Update, Id> {
 
     abstract val table: TableType
@@ -56,16 +68,45 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
         transaction(database) { SchemaUtils.create(table) }
     }
 
-    internal suspend fun <T> dbQuery(block: suspend () -> T): T =
+    protected suspend fun <T> dbQuery(block: suspend () -> T): T =
         newSuspendedTransaction(Dispatchers.IO) { block() }
 
     abstract fun toModel(row: ResultRow): Model
-    open fun allToModel(rows: List<ResultRow>): List<Model> {
-        return rows.map(::toModel)
+
+    internal fun Query.toModel(): Model? = toModelList().singleOrNull()
+    internal fun Query.toModelList(): List<Model> = mapNotNull(::toModel)
+
+    open suspend fun query(
+        page: Int?,
+        size: Int?,
+        sort: String?,
+        order: SortOrder?,
+    ): Query = dbQuery {
+        val pageSize = size ?: Service.defaultSize
+        val pageNumber = page ?: Service.defaultPage
+
+        val query = table.selectAll()
+
+        if (sort != null) {
+            val column = table.columns.firstOrNull { it.name.equals(sort, ignoreCase = true) }
+            if (column != null) {
+                query.orderBy(column to (order ?: SortOrder.DESC))
+            }
+        }
+
+        query.limit(pageSize, pageSize * pageNumber.toLong())
     }
 
-    internal fun Query.toModel(): Model? = mapNotNull(::toModel).singleOrNull()
-    internal fun Query.allToModel(): List<Model> = allToModel(toList())
+    open suspend fun page(
+        page: Int? = null,
+        size: Int? = null,
+        sort: String? = null,
+        order: SortOrder? = null,
+    ): List<Model> = dbQuery { query(page, size, sort, order).toModelList() }
+
+    override suspend fun page(page: Int?, size: Int?): List<Model> = dbQuery {
+        page(page, size, null, null)
+    }
 
     abstract fun fromRequest(statement: InsertStatement<*>, request: Request)
     abstract fun fromUpdate(statement: UpdateStatement, update: Update)
@@ -82,40 +123,6 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
             .singleOrNull()
     }
 
-    internal open suspend fun query(
-        page: Int? = null,
-        size: Int? = null,
-        sort: String? = null,
-        order: SortOrder? = null
-    ): Query = dbQuery {
-        val pageSize = size ?: 20
-        val pageNumber = page ?: 0
-
-        val query = table.selectAll()
-
-        if (sort != null) {
-            val column = table.columns.firstOrNull { it.name.equals(sort, ignoreCase = true) }
-            if (column != null) {
-                query.orderBy(column to (order ?: SortOrder.DESC))
-            }
-        }
-
-        query.limit(pageSize, pageSize * pageNumber.toLong())
-    }
-
-    suspend fun page(
-        page: Int? = null,
-        size: Int? = null,
-        sort: String? = null,
-        order: SortOrder? = null
-    ): List<Model> = dbQuery {
-        query(page, size, sort, order).allToModel()
-    }
-
-    override suspend fun page(page: Int?, size: Int?): List<Model> = dbQuery {
-        page(page, size, null, null)
-    }
-
     override suspend fun update(id: Id, update: Update): Unit = dbQuery {
         table.update({ table.selector(id) }) {
             fromUpdate(it, update)
@@ -128,7 +135,7 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
 }
 
 abstract class IntSqlService<Request, Model, Update, TableType : IntServiceTable>(
-    database: Database
+    database: Database,
 ) : SqlService<Request, Model, Update, Int, TableType>(database)
 
 

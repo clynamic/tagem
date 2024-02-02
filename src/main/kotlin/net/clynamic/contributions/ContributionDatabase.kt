@@ -45,7 +45,7 @@ class ContributionsService(database: Database) :
     }
 
     override fun fromUpdate(statement: UpdateStatement, update: Nothing) {
-        // No-op
+        throw UnsupportedOperationException("Cannot update a contribution")
     }
 
     override fun fromRequest(statement: InsertStatement<*>, request: ContributionRequest) {
@@ -63,11 +63,11 @@ class ContributionsService(database: Database) :
         sort: String? = null,
         order: SortOrder? = null,
         projectId: Int? = null,
-        userId: Int? = null
+        userId: Int? = null,
     ): List<Contribution> = dbQuery {
         query(page, size, sort, order)
             .let { base -> projectId?.let { base.andWhere { table.projectId eq it } } ?: base }
             .let { base -> userId?.let { base.andWhere { table.userId eq it } } ?: base }
-            .allToModel()
+            .toModelList()
     }
 }
