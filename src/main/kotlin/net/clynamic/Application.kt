@@ -14,6 +14,7 @@ import net.clynamic.common.configureSerialization
 import net.clynamic.common.configureSwagger
 import net.clynamic.common.dotenv
 import net.clynamic.contributions.configureContributionsRouting
+import net.clynamic.interactions.configureInteractionsRouting
 import net.clynamic.projects.configureProjectsRouting
 import net.clynamic.users.configureUsersRouting
 
@@ -36,4 +37,5 @@ fun Application.module() {
     configureProjectsRouting()
     configureCommentsRouting()
     configureContributionsRouting()
+    configureInteractionsRouting()
 }
