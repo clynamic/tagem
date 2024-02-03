@@ -3,15 +3,19 @@ package net.clynamic.projects
 import com.fasterxml.jackson.core.type.TypeReference
 import net.clynamic.common.IntServiceTable
 import net.clynamic.common.IntSqlService
+import net.clynamic.common.NoSuchRecordException
+import net.clynamic.common.Visibility
 import net.clynamic.common.instant
 import net.clynamic.common.json
 import net.clynamic.common.setAll
 import net.clynamic.users.UsersService
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.andWhere
+import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.statements.InsertStatement
 import org.jetbrains.exposed.sql.statements.UpdateStatement
 import org.jetbrains.exposed.sql.update
@@ -83,6 +87,54 @@ class ProjectsService(database: Database) :
         }
     }
 
+    private suspend fun query(
+        page: Int?,
+        size: Int?,
+        sort: String?,
+        order: SortOrder?,
+        private: Visibility = Visibility.None,
+        deleted: Visibility = Visibility.None,
+    ): Query {
+        return super.query(page, size, sort, order)
+            .let { base ->
+                when (private) {
+                    is Visibility.None -> base.andWhere { table.isPrivate eq false }
+                    is Visibility.Only -> base.andWhere { table.isPrivate eq false or (table.userId eq private.id) }
+                    is Visibility.All -> base
+                }
+            }
+            .let { base ->
+                when (deleted) {
+                    is Visibility.None -> base.andWhere { table.isDeleted eq false }
+                    is Visibility.Only -> base.andWhere { table.isDeleted eq false or (table.userId eq deleted.id) }
+                    is Visibility.All -> base
+                }
+            }
+    }
+
+    override suspend fun query(page: Int?, size: Int?, sort: String?, order: SortOrder?): Query {
+        return query(page, size, sort, order, Visibility.None, Visibility.None)
+    }
+
+    suspend fun readOrNull(
+        id: Int,
+        deleted: Visibility = Visibility.None,
+    ): Project? {
+        return super.readOrNull(id).let {
+            when (deleted) {
+                is Visibility.None -> it?.takeIf { !it.isDeleted }
+                is Visibility.Only -> it?.takeIf { !it.isDeleted || (it.userId == deleted.id) }
+                is Visibility.All -> it
+            }
+        }
+    }
+
+    suspend fun read(id: Int, deleted: Visibility = Visibility.None): Project {
+        return readOrNull(id, deleted) ?: throw NoSuchRecordException(id, "Project")
+    }
+
+    override suspend fun read(id: Int): Project = read(id, Visibility.None)
+
     override suspend fun create(request: ProjectRequest): Int = dbQuery {
         val id = super.create(request)
         versionsService.create(ProjectVersionRequest(read(id)))
@@ -117,8 +169,10 @@ class ProjectsService(database: Database) :
         sort: String? = null,
         order: SortOrder? = null,
         user: Int? = null,
+        private: Visibility = Visibility.None,
+        deleted: Visibility = Visibility.None,
     ): List<Project> = dbQuery {
-        query(page, size, sort, order)
+        query(page, size, sort, order, private, deleted)
             .let { base -> user?.let { base.andWhere { table.userId eq it } } ?: base }
             .toModelList()
     }

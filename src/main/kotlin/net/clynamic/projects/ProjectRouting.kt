@@ -40,7 +40,8 @@ fun Application.configureProjectsRouting() {
             }
         }) {
             val id = call.parameters.id
-            val project = service.read(id)
+            val deletedProjects = call.deletedProjects()
+            val project = service.read(id, deletedProjects)
             call.respond(HttpStatusCode.OK, project)
         }
         get("/projects", {
@@ -62,7 +63,10 @@ fun Application.configureProjectsRouting() {
             val (page, size) = call.getPageAndSize()
             val (sort, order) = call.getSortAndOrder()
             val user = call.parameters["user"]?.toIntOrNull()
-            val projects = service.page(page, size, sort, order, user)
+            val privateProjects = call.privateProjects()
+            val deletedProjects = call.deletedProjects()
+            val projects =
+                service.page(page, size, sort, order, user, privateProjects, deletedProjects)
             call.respond(HttpStatusCode.OK, projects)
         }
         authenticate {

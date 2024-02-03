@@ -57,3 +57,24 @@ fun Application.configureAuth() {
         }
     }
 }
+
+/**
+ * How to handle resource visibility, e.g. deleted items, private items, etc.
+ */
+sealed class Visibility {
+    /**
+     * Only visible items
+     */
+    data object None : Visibility()
+
+    /**
+     * Visible items or hidden items belonging to a specific user
+     */
+    data class Only(val id: Int) : Visibility()
+
+    /**
+     * All items regardless of visibility
+     */
+    data object All : Visibility()
+}
+

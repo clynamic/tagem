@@ -3,6 +3,7 @@ package net.clynamic.comments
 import net.clynamic.common.IntServiceTable
 import net.clynamic.common.IntSqlService
 import net.clynamic.common.NoSuchRecordException
+import net.clynamic.common.Visibility
 import net.clynamic.common.instant
 import net.clynamic.common.setAll
 import net.clynamic.projects.ProjectsService
@@ -65,40 +66,40 @@ class CommentsService(database: Database) :
         size: Int?,
         sort: String?,
         order: SortOrder?,
-        hiddenComments: HiddenComments = HiddenComments.None,
+        hidden: Visibility = Visibility.None,
     ): Query {
         return super.query(page, size, sort, order)
             .let { base ->
-                when (hiddenComments) {
-                    is HiddenComments.None -> base.andWhere { table.hiddenBy.isNull() }
-                    is HiddenComments.Only -> base.andWhere { table.hiddenBy.isNull() or (table.userId eq hiddenComments.id) }
-                    is HiddenComments.All -> base
+                when (hidden) {
+                    is Visibility.None -> base.andWhere { table.hiddenBy.isNull() }
+                    is Visibility.Only -> base.andWhere { table.hiddenBy.isNull() or (table.userId eq hidden.id) }
+                    is Visibility.All -> base
                 }
             }
     }
 
     override suspend fun query(page: Int?, size: Int?, sort: String?, order: SortOrder?): Query {
-        return query(page, size, sort, order, HiddenComments.None)
+        return query(page, size, sort, order, Visibility.None)
     }
 
     suspend fun readOrNull(
         id: Int,
-        hiddenComments: HiddenComments = HiddenComments.None,
+        hidden: Visibility = Visibility.None,
     ): Comment? {
         return super.readOrNull(id).let {
-            when (hiddenComments) {
-                is HiddenComments.None -> it?.takeIf { it.hiddenBy == null }
-                is HiddenComments.Only -> it?.takeIf { it.userId == hiddenComments.id }
-                is HiddenComments.All -> it
+            when (hidden) {
+                is Visibility.None -> it?.takeIf { it.hiddenBy == null }
+                is Visibility.Only -> it?.takeIf { it.hiddenBy == null || it.userId == hidden.id }
+                is Visibility.All -> it
             }
         }
     }
 
-    suspend fun read(id: Int, hiddenComments: HiddenComments = HiddenComments.None): Comment {
-        return readOrNull(id, hiddenComments) ?: throw NoSuchRecordException(id, "Comment")
+    suspend fun read(id: Int, hidden: Visibility = Visibility.None): Comment {
+        return readOrNull(id, hidden) ?: throw NoSuchRecordException(id, "Comment")
     }
 
-    override suspend fun read(id: Int): Comment = read(id, HiddenComments.None)
+    override suspend fun read(id: Int): Comment = read(id, Visibility.None)
 
     suspend fun page(
         page: Int? = null,
@@ -107,31 +108,11 @@ class CommentsService(database: Database) :
         order: SortOrder? = null,
         user: Int? = null,
         project: Int? = null,
-        hiddenComments: HiddenComments = HiddenComments.None,
+        hidden: Visibility = Visibility.None,
     ): List<Comment> = dbQuery {
-        query(page, size, sort, order, hiddenComments)
+        query(page, size, sort, order, hidden)
             .let { base -> user?.let { base.andWhere { table.userId eq it } } ?: base }
             .let { base -> project?.let { base.andWhere { table.projectId eq it } } ?: base }
             .toModelList()
     }
-}
-
-/**
- * How to handle hidden comments in a query
- */
-sealed class HiddenComments {
-    /**
-     * Only visible comments
-     */
-    data object None : HiddenComments()
-
-    /**
-     * Visible comments or hidden comments authored by the given user
-     */
-    data class Only(val id: Int) : HiddenComments()
-
-    /**
-     * All comments regardless of visibility
-     */
-    data object All : HiddenComments()
 }
