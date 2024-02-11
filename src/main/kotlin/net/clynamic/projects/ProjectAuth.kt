@@ -9,7 +9,7 @@ import net.clynamic.users.UserRank
 import net.clynamic.users.UsersService
 
 suspend fun ApplicationCall.privateProjects(): Visibility {
-    val service = UsersService(attributes[DATABASE_KEY])
+    val service = UsersService(application.attributes[DATABASE_KEY])
     val userId = principal<UserPrincipal>()?.id
 
     return if (userId != null) {
@@ -25,7 +25,7 @@ suspend fun ApplicationCall.privateProjects(): Visibility {
 }
 
 suspend fun ApplicationCall.deletedProjects(): Visibility {
-    val service = UsersService(attributes[DATABASE_KEY])
+    val service = UsersService(application.attributes[DATABASE_KEY])
     val userId = principal<UserPrincipal>()?.id
 
     return if (userId != null) {
