@@ -15,6 +15,9 @@ fun Application.configureCors() {
             logger.info("Allowing requests from $hostUrl")
             allowHost(hostUrl, listOf("http", "https"))
         }
+        allowOrigins {
+            it.matches(Regex("^(https?://)?(localhost|127\\.\\d+\\.\\d+\\.\\d+)(:\\d+)?(/.*)?$"))
+        }
         allowSameOrigin = true
     }
 }
