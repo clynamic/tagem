@@ -46,11 +46,16 @@ fun Application.configureInteractionsRouting() {
                 get("/interactions/{id}", {
                     tags = listOf("interactions")
                     description = "Get an interaction by ID"
+                    operationId = "interaction"
                     request {
-                        pathParameter<Int>("id") { description = "The interaction ID" }
+                        pathParameter<Int>("id") {
+                            description = "The interaction ID"
+                            required = true
+                        }
                     }
                     response {
                         HttpStatusCode.OK to {
+                            description = "The interaction"
                             body<Interaction> {}
                         }
                         HttpStatusCode.NotFound to {
@@ -65,6 +70,7 @@ fun Application.configureInteractionsRouting() {
                 get("/interactions", {
                     tags = listOf("interactions")
                     description = "Get a page of interactions"
+                    operationId = "interactions"
                     request {
                         queryParameter<Int?>("page") { description = "The page number" }
                         queryParameter<Int?>("size") { description = "The page size" }
@@ -83,6 +89,7 @@ fun Application.configureInteractionsRouting() {
                     }
                     response {
                         HttpStatusCode.OK to {
+                            description = "The page of interactions"
                             body<List<Interaction>> {}
                         }
                     }

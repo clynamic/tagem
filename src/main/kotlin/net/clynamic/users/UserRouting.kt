@@ -52,16 +52,17 @@ fun Application.configureUsersRouting() {
         post("/login", {
             tags = listOf("auth")
             description = "Fetch a JWT token"
+            operationId = "login"
             request {
                 body<UserCredentials> {
                     description = "User credentials"
+                    required = true
                 }
             }
             response {
                 HttpStatusCode.Created to {
-                    body<String> {
-                        description = "The JWT token"
-                    }
+                    description = "The JWT token"
+                    body<String> {}
                 }
             }
         }) {
@@ -111,11 +112,16 @@ fun Application.configureUsersRouting() {
         get("/users/{id}", {
             tags = listOf("users")
             description = "Get a user by ID"
+            operationId = "user"
             request {
-                pathParameter<Int>("id") { description = "The user ID" }
+                pathParameter<Int>("id") {
+                    description = "The user ID"
+                    required = true
+                }
             }
             response {
                 HttpStatusCode.OK to {
+                    description = "The user"
                     body<User> {}
                 }
                 HttpStatusCode.NotFound to {
@@ -131,6 +137,7 @@ fun Application.configureUsersRouting() {
             {
                 tags = listOf("users")
                 description = "Get a page of users"
+                operationId = "users"
                 request {
                     queryParameter<Int?>("page") { description = "The page number" }
                     queryParameter<Int?>("size") { description = "The page size" }
@@ -139,6 +146,7 @@ fun Application.configureUsersRouting() {
                 }
                 response {
                     HttpStatusCode.OK to {
+                        description = "The users"
                         body<List<User>> {}
                     }
                 }
@@ -155,11 +163,16 @@ fun Application.configureUsersRouting() {
                 patch("/users/{id}/rank", {
                     tags = listOf("users")
                     description = "Update a user's rank"
+                    operationId = "updateUserRank"
                     securitySchemeName = "jwt"
                     request {
-                        pathParameter<Int>("id") { description = "The user ID" }
+                        pathParameter<Int>("id") {
+                            description = "The user ID"
+                            required = true
+                        }
                         body<UserRank> {
                             description = "The new user rank"
+                            required = true
                         }
                     }
                     response {
@@ -179,9 +192,13 @@ fun Application.configureUsersRouting() {
                 delete("/users/{id}", {
                     tags = listOf("users")
                     description = "Ban a user"
+                    operationId = "banUser"
                     securitySchemeName = "jwt"
                     request {
-                        pathParameter<Int>("id") { description = "The user ID" }
+                        pathParameter<Int>("id") {
+                            description = "The user ID"
+                            required = true
+                        }
                     }
                     response {
                         HttpStatusCode.OK to {
@@ -199,9 +216,13 @@ fun Application.configureUsersRouting() {
                 patch("/users/{id}/restore", {
                     tags = listOf("users")
                     description = "Pardon a user"
+                    operationId = "unbanUser"
                     securitySchemeName = "jwt"
                     request {
-                        pathParameter<Int>("id") { description = "The user ID" }
+                        pathParameter<Int>("id") {
+                            description = "The user ID"
+                            required = true
+                        }
                     }
                     response {
                         HttpStatusCode.OK to {

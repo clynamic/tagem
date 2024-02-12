@@ -27,11 +27,16 @@ fun Application.configureProjectsRouting() {
         get("/projects/{id}", {
             tags = listOf("projects")
             description = "Get a project by ID"
+            operationId = "project"
             request {
-                pathParameter<Int>("id") { description = "The project ID" }
+                pathParameter<Int>("id") {
+                    description = "The project ID"
+                    required = true
+                }
             }
             response {
                 HttpStatusCode.OK to {
+                    description = "The project"
                     body<Project> {}
                 }
                 HttpStatusCode.NotFound to {
@@ -47,6 +52,7 @@ fun Application.configureProjectsRouting() {
         get("/projects", {
             tags = listOf("projects")
             description = "Get a page of projects"
+            operationId = "projects"
             request {
                 queryParameter<Int?>("page") { description = "The page number" }
                 queryParameter<Int?>("size") { description = "The page size" }
@@ -56,6 +62,7 @@ fun Application.configureProjectsRouting() {
             }
             response {
                 HttpStatusCode.OK to {
+                    description = "The projects"
                     body<List<Project>> {}
                 }
             }
@@ -76,17 +83,18 @@ fun Application.configureProjectsRouting() {
                 post("/projects", {
                     tags = listOf("projects")
                     description = "Create a project"
+                    operationId = "createProject"
                     securitySchemeName = "jwt"
                     request {
                         body<ProjectRequest> {
                             description = "New project properties"
+                            required = true
                         }
                     }
                     response {
                         HttpStatusCode.Created to {
-                            body<Int> {
-                                description = "The new project ID"
-                            }
+                            description = "The new project ID"
+                            body<Int> {}
                         }
                     }
                 }) {
@@ -105,11 +113,16 @@ fun Application.configureProjectsRouting() {
                 put("/projects/{id}", {
                     tags = listOf("projects")
                     description = "Edit a project by ID"
+                    operationId = "editProject"
                     securitySchemeName = "jwt"
                     request {
-                        pathParameter<Int>("id") { description = "The project ID" }
+                        pathParameter<Int>("id") {
+                            description = "The project ID"
+                            required = true
+                        }
                         body<ProjectEdit> {
                             description = "New project properties"
+                            required = true
                         }
                     }
                     response {
@@ -137,9 +150,13 @@ fun Application.configureProjectsRouting() {
                 delete("/projects/{id}", {
                     tags = listOf("projects")
                     description = "Delete a project by ID"
+                    operationId = "deleteProject"
                     securitySchemeName = "jwt"
                     request {
-                        pathParameter<Int>("id") { description = "The project ID" }
+                        pathParameter<Int>("id") {
+                            description = "The project ID"
+                            required = true
+                        }
                     }
                     response {
                         HttpStatusCode.NoContent to {
@@ -154,9 +171,13 @@ fun Application.configureProjectsRouting() {
                 patch("/projects/{id}/restore", {
                     tags = listOf("projects")
                     description = "Restore a project by ID"
+                    operationId = "restoreProject"
                     securitySchemeName = "jwt"
                     request {
-                        pathParameter<Int>("id") { description = "The project ID" }
+                        pathParameter<Int>("id") {
+                            description = "The project ID"
+                            required = true
+                        }
                     }
                     response {
                         HttpStatusCode.NoContent to {
@@ -178,12 +199,17 @@ fun Application.configureProjectsRouting() {
         get("/project-versions/{id}", {
             tags = listOf("project-versions")
             description = "Get a project version by ID"
+            operationId = "projectVersion"
             request {
-                pathParameter<Int>("id") { description = "The project version ID" }
+                pathParameter<Int>("id") {
+                    description = "The project version ID"
+                    required = true
+                }
             }
             response {
                 HttpStatusCode.OK to {
-                    body<Project> {}
+                    description = "The project version"
+                    body<ProjectVersion> {}
                 }
                 HttpStatusCode.NotFound to {
                     description = "Project not found"
@@ -197,6 +223,7 @@ fun Application.configureProjectsRouting() {
         get("/project-versions", {
             tags = listOf("project-versions")
             description = "Get a page of project versions"
+            operationId = "projectVersions"
             request {
                 queryParameter<Int?>("page") { description = "The page number" }
                 queryParameter<Int?>("size") { description = "The page size" }
@@ -208,7 +235,8 @@ fun Application.configureProjectsRouting() {
             }
             response {
                 HttpStatusCode.OK to {
-                    body<List<Project>> {}
+                    description = "The project versions"
+                    body<List<ProjectVersion>> {}
                 }
             }
         }) {

@@ -1,33 +1,50 @@
 package net.clynamic.users
 
 import io.ktor.server.auth.Principal
+import io.swagger.v3.oas.annotations.media.Schema
 
 data class User(
+    @field:Schema(required = true)
     val id: Int,
+    @field:Schema(required = true)
     val name: String,
+    @field:Schema(required = true)
     val rank: UserRank,
+    @field:Schema(required = true)
     val strikes: Int,
-    val isBanned: Boolean
+    @field:Schema(required = true)
+    val isBanned: Boolean,
 )
 
 data class UserRequest(
+    @field:Schema(required = true)
     val id: Int,
+    @field:Schema(required = true)
     val name: String,
+    @field:Schema(required = true)
     val rank: UserRank,
+    @field:Schema(required = true, defaultValue = "0")
     val strikes: Int = 0,
-    val isBanned: Boolean = false
+    @field:Schema(required = true, defaultValue = "false")
+    val isBanned: Boolean = false,
 )
 
 data class UserUpdate(
+    @field:Schema(nullable = true)
     val name: String? = null,
+    @field:Schema(nullable = true)
     val rank: UserRank? = null,
+    @field:Schema(nullable = true)
     val strikes: Int? = null,
-    val isBanned: Boolean? = null
+    @field:Schema(nullable = true)
+    val isBanned: Boolean? = null,
 )
 
 data class UserCredentials(
+    @field:Schema(required = true)
     val username: String,
-    val password: String
+    @field:Schema(required = true)
+    val password: String,
 )
 
 data class UserInfo(
@@ -52,7 +69,7 @@ data class UserInfo(
 data class UserPrincipal(
     val id: Int,
     val name: String,
-    val rank: UserRank
+    val rank: UserRank,
 ) : Principal {
     companion object {
         const val USER_ID_CLAIM = "user_id"

@@ -31,11 +31,16 @@ fun Application.configureCommentsRouting() {
         get("/comments/{id}", {
             tags = listOf("comments")
             description = "Get a comment by ID"
+            operationId = "comment"
             request {
-                pathParameter<Int>("id") { description = "The comment ID" }
+                pathParameter<Int>("id") {
+                    description = "The comment ID"
+                    required = true
+                }
             }
             response {
                 HttpStatusCode.OK to {
+                    description = "The comment"
                     body<Comment> {}
                 }
                 HttpStatusCode.NotFound to {
@@ -52,6 +57,7 @@ fun Application.configureCommentsRouting() {
         get("/comments", {
             tags = listOf("comments")
             description = "Get a page of comments"
+            operationId = "comments"
             request {
                 queryParameter<Int?>("page") { description = "The page number" }
                 queryParameter<Int?>("size") { description = "The page size" }
@@ -64,6 +70,7 @@ fun Application.configureCommentsRouting() {
             }
             response {
                 HttpStatusCode.OK to {
+                    description = "The page of comments"
                     body<List<Comment>> {}
                 }
             }
@@ -80,17 +87,18 @@ fun Application.configureCommentsRouting() {
             post("/comments", {
                 tags = listOf("comments")
                 description = "Create a comment"
+                operationId = "createComment"
                 securitySchemeName = "jwt"
                 request {
                     body<CommentRequest> {
                         description = "New comment properties"
+                        required = true
                     }
                 }
                 response {
                     HttpStatusCode.Created to {
-                        body<Int> {
-                            description = "The new comment ID"
-                        }
+                        description = "The new comment ID"
+                        body<Int> {}
                     }
                 }
             }) {
@@ -109,11 +117,16 @@ fun Application.configureCommentsRouting() {
                 put("/comments/{id}", {
                     tags = listOf("comments")
                     description = "Edit a comment by ID"
+                    operationId = "editComment"
                     securitySchemeName = "jwt"
                     request {
-                        pathParameter<Int>("id") { description = "The comment ID" }
+                        pathParameter<Int>("id") {
+                            description = "The comment ID"
+                            required = true
+                        }
                         body<CommentEdit> {
                             description = "New comment properties"
+                            required = true
                         }
                     }
                     response {
@@ -159,9 +172,13 @@ fun Application.configureCommentsRouting() {
                 delete("/comments/{id}", {
                     tags = listOf("comments")
                     description = "Hide a comment by ID"
+                    operationId = "hideComment"
                     securitySchemeName = "jwt"
                     request {
-                        pathParameter<Int>("id") { description = "The comment ID" }
+                        pathParameter<Int>("id") {
+                            description = "The comment ID"
+                            required = true
+                        }
                     }
                     response {
                         HttpStatusCode.NoContent to {
@@ -177,9 +194,13 @@ fun Application.configureCommentsRouting() {
                 patch("/comments/{id}/restore", {
                     tags = listOf("comments")
                     description = "Restore a comment by ID"
+                    operationId = "restoreComment"
                     securitySchemeName = "jwt"
                     request {
-                        pathParameter<Int>("id") { description = "The comment ID" }
+                        pathParameter<Int>("id") {
+                            description = "The comment ID"
+                            required = true
+                        }
                     }
                     response {
                         HttpStatusCode.NoContent to {

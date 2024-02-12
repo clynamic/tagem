@@ -24,11 +24,16 @@ fun Application.configureContributionsRouting() {
         get("/contributions/{id}", {
             tags = listOf("contributions")
             description = "Get a contribution by ID"
+            operationId = "contribution"
             request {
-                pathParameter<Int>("id") { description = "The contribution ID" }
+                pathParameter<Int>("id") {
+                    description = "The contribution ID"
+                    required = true
+                }
             }
             response {
                 HttpStatusCode.OK to {
+                    description = "The contribution"
                     body<Contribution> {}
                 }
                 HttpStatusCode.NotFound to {
@@ -43,6 +48,7 @@ fun Application.configureContributionsRouting() {
         get("/contributions", {
             tags = listOf("contributions")
             description = "Get a page of contributions"
+            operationId = "contributions"
             request {
                 queryParameter<Int?>("page") { description = "The page number" }
                 queryParameter<Int?>("size") { description = "The page size" }
@@ -55,6 +61,7 @@ fun Application.configureContributionsRouting() {
             }
             response {
                 HttpStatusCode.OK to {
+                    description = "The contributions"
                     body<List<Contribution>> {}
                 }
             }
@@ -73,17 +80,18 @@ fun Application.configureContributionsRouting() {
                 post("/contributions", {
                     tags = listOf("contributions")
                     description = "Create a contribution"
+                    operationId = "createContribution"
                     securitySchemeName = "jwt"
                     request {
                         body<ContributionRequest> {
                             description = "New contribution properties"
+                            required = true
                         }
                     }
                     response {
                         HttpStatusCode.Created to {
-                            body<Int> {
-                                description = "The new contribution ID"
-                            }
+                            description = "The new contribution ID"
+                            body<Int> {}
                         }
                     }
                 }) {
