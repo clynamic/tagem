@@ -13,7 +13,9 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.castTo
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
@@ -249,6 +251,10 @@ class JsonAsText<T : Any>(private val typeRef: TypeReference<T>) : ColumnType() 
 
 fun <T : Any> Table.json(name: String, typeRef: TypeReference<T>): Column<T> =
     registerColumn(name, JsonAsText(typeRef))
+
+infix fun Column<List<String>>.like(s: String): Op<Boolean> {
+    return this.castTo<String>(JsonAsText(object : TypeReference<List<String>>() {})) like s
+}
 
 class UpdateStatementSets(private val statement: UpdateStatement) {
     infix fun <T> Column<T>.set(value: T?) {

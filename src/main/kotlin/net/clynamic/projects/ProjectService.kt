@@ -8,6 +8,7 @@ import net.clynamic.common.PageOptionsBase
 import net.clynamic.common.Visibility
 import net.clynamic.common.instant
 import net.clynamic.common.json
+import net.clynamic.common.like
 import net.clynamic.common.setAll
 import net.clynamic.projects.ProjectVersionsService.ProjectVersions
 import net.clynamic.projects.ProjectsService.Projects
@@ -95,6 +96,29 @@ class ProjectsService(database: Database) :
     ): Query {
         return super.query(options)
             .let { base -> options.user?.let { base.andWhere { table.userId eq it } } ?: base }
+            .let { base -> options.name?.let { base.andWhere { table.name like "%$it%" } } ?: base }
+            .let { base ->
+                options.description?.let { base.andWhere { table.description like "%$it%" } }
+                    ?: base
+            }
+            .let { base ->
+                options.guidelines?.let { base.andWhere { table.guidelines like "%$it%" } } ?: base
+            }
+            .let { base ->
+                options.tags?.let {
+                    it.fold(base) { acc, tag ->
+                        acc.andWhere { table.tags like "%\"$tag\"%" }
+                    }
+                } ?: base
+            }
+            .let { base ->
+                options.search?.let {
+                    base.andWhere {
+                        (table.name like "%$it%").or(table.description like "%$it%")
+                            .or(table.guidelines like "%$it%")
+                    }
+                } ?: base
+            }
             .let { base ->
                 when (options.private) {
                     is Visibility.None -> base.andWhere { table.isPrivate eq false }
@@ -231,13 +255,17 @@ class ProjectVersionsService(database: Database) :
     }
 }
 
-
 data class ProjectPageOptions(
     override val page: Int? = null,
     override val size: Int? = null,
     override val sort: String? = null,
     override val order: SortOrder? = null,
     override val limited: Boolean = true,
+    val name: String? = null,
+    val description: String? = null,
+    val guidelines: String? = null,
+    val tags: List<String>? = null,
+    val search: String? = null,
     val user: Int? = null,
     val private: Visibility = Visibility.None,
     val deleted: Visibility = Visibility.None,
@@ -249,7 +277,21 @@ data class ProjectPageOptions(
         order: SortOrder?,
         limited: Boolean,
     ): ProjectPageOptions =
-        duplicate(page, size, sort, order, limited, user, private, deleted)
+        duplicate(
+            page,
+            size,
+            sort,
+            order,
+            limited,
+            name,
+            description,
+            guidelines,
+            tags,
+            search,
+            user,
+            private,
+            deleted
+        )
 
     fun duplicate(
         page: Int? = this.page,
@@ -257,6 +299,11 @@ data class ProjectPageOptions(
         sort: String? = this.sort,
         order: SortOrder? = this.order,
         limited: Boolean = this.limited,
+        name: String? = this.name,
+        description: String? = this.description,
+        guidelines: String? = this.guidelines,
+        tags: List<String>? = this.tags,
+        search: String? = this.search,
         user: Int? = this.user,
         private: Visibility = this.private,
         deleted: Visibility = this.deleted,
@@ -267,6 +314,11 @@ data class ProjectPageOptions(
             sort = sort,
             order = order,
             limited = limited,
+            name = name,
+            description = description,
+            guidelines = guidelines,
+            tags = tags,
+            search = search,
             user = user,
             private = private,
             deleted = deleted,

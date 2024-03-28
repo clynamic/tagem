@@ -58,6 +58,21 @@ fun Application.configureProjectsRouting() {
                 queryParameter<String?>("sort") { description = "The sort field" }
                 queryParameter<SortOrder?>("order") { description = "The sort order" }
                 queryParameter<Int?>("user") { description = "User ID to filter by association" }
+                queryParameter<String?>("name") {
+                    description = "Matches names containing the value"
+                }
+                queryParameter<String?>("description") {
+                    description = "Matches descriptions containing the value"
+                }
+                queryParameter<String?>("guidelines") {
+                    description = "Matches guidelines containing the value"
+                }
+                queryParameter<String?>("tags") {
+                    description = "Matches tags which contain these tags"
+                }
+                queryParameter<String?>("search") {
+                    description = "Matches names, descriptions, guidelines containing the value"
+                }
             }
             response {
                 HttpStatusCode.OK to {
@@ -68,6 +83,11 @@ fun Application.configureProjectsRouting() {
         }) {
             val options = ProjectPageOptions().paged(call).duplicate(
                 user = call.parameters["user"]?.toIntOrNull(),
+                name = call.parameters["name"],
+                description = call.parameters["description"],
+                guidelines = call.parameters["guidelines"],
+                tags = call.parameters["tags"]?.split(","),
+                search = call.parameters["search"],
                 private = call.privateProjects(),
                 deleted = call.deletedProjects(),
             )
