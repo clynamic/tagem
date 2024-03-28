@@ -13,9 +13,8 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
-import net.clynamic.common.getPageAndSize
-import net.clynamic.common.getSortAndOrder
 import net.clynamic.common.id
+import net.clynamic.common.paged
 import net.clynamic.users.UserRank
 import net.clynamic.users.authorize
 import org.jetbrains.exposed.sql.SortOrder
@@ -63,17 +62,16 @@ fun Application.configureProjectsRouting() {
             response {
                 HttpStatusCode.OK to {
                     description = "The projects"
-                    body<List<Project>> {}
+                    body<ProjectPage> {}
                 }
             }
         }) {
-            val (page, size) = call.getPageAndSize()
-            val (sort, order) = call.getSortAndOrder()
-            val user = call.parameters["user"]?.toIntOrNull()
-            val privateProjects = call.privateProjects()
-            val deletedProjects = call.deletedProjects()
-            val projects =
-                service.page(page, size, sort, order, user, privateProjects, deletedProjects)
+            val options = ProjectPageOptions().paged(call).duplicate(
+                user = call.parameters["user"]?.toIntOrNull(),
+                private = call.privateProjects(),
+                deleted = call.deletedProjects(),
+            )
+            val projects = service.page(options)
             call.respond(HttpStatusCode.OK, projects)
         }
         authenticate {
@@ -236,14 +234,14 @@ fun Application.configureProjectsRouting() {
             response {
                 HttpStatusCode.OK to {
                     description = "The project versions"
-                    body<List<ProjectVersion>> {}
+                    body<ProjectVersionPage> {}
                 }
             }
         }) {
-            val (page, size) = call.getPageAndSize()
-            val (sort, order) = call.getSortAndOrder()
-            val project = call.parameters["project"]?.toIntOrNull()
-            val projectVersions = versionsService.page(page, size, sort, order, project)
+            val options = ProjectVersionPageOptions().paged(call).duplicate(
+                project = call.parameters["project"]?.toIntOrNull(),
+            )
+            val projectVersions = versionsService.page(options)
             call.respond(HttpStatusCode.OK, projectVersions)
         }
     }

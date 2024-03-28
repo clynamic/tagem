@@ -2,10 +2,13 @@ package net.clynamic.interactions
 
 import net.clynamic.common.IntServiceTable
 import net.clynamic.common.IntSqlService
+import net.clynamic.common.PageOptionsBase
 import net.clynamic.common.instant
 import net.clynamic.common.setAll
+import net.clynamic.interactions.InteractionsService.Interactions
 import net.clynamic.projects.ProjectsService
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
@@ -15,7 +18,7 @@ import org.jetbrains.exposed.sql.statements.UpdateStatement
 import java.time.Instant
 
 class InteractionsService(database: Database) :
-    IntSqlService<InteractionRequest, Interaction, Nothing, InteractionsService.Interactions>(
+    IntSqlService<InteractionRequest, Interaction, Nothing, Interactions, InteractionPageOptions>(
         database
     ) {
     object Interactions : IntServiceTable() {
@@ -47,6 +50,18 @@ class InteractionsService(database: Database) :
         throw UnsupportedOperationException("Cannot update an interaction")
     }
 
+    override suspend fun query(options: InteractionPageOptions): Query = dbQuery {
+        super.query(options)
+            .let { base ->
+                options.endpoint?.let { base.andWhere { table.endpoint eq it } } ?: base
+            }
+            .let { base -> options.origin?.let { base.andWhere { table.origin eq it } } ?: base }
+            .let { base -> options.userId?.let { base.andWhere { table.userId eq it } } ?: base }
+            .let { base ->
+                options.response?.let { base.andWhere { table.response eq it } } ?: base
+            }
+    }
+
     override fun fromRequest(statement: InsertStatement<*>, request: InteractionRequest) {
         statement.setAll {
             Interactions.endpoint set request.endpoint
@@ -56,22 +71,57 @@ class InteractionsService(database: Database) :
             Interactions.createdAt set Instant.now()
         }
     }
+}
 
-    suspend fun page(
-        page: Int? = null,
-        size: Int? = null,
-        sort: String? = null,
-        order: SortOrder? = null,
-        endpoint: String? = null,
-        origin: String? = null,
-        userId: Int? = null,
-        response: Int? = null,
-    ): List<Interaction> = dbQuery {
-        query(page, size, sort, order)
-            .let { base -> endpoint?.let { base.andWhere { table.endpoint eq it } } ?: base }
-            .let { base -> origin?.let { base.andWhere { table.origin eq it } } ?: base }
-            .let { base -> userId?.let { base.andWhere { table.userId eq it } } ?: base }
-            .let { base -> response?.let { base.andWhere { table.response eq it } } ?: base }
-            .toModelList()
-    }
+data class InteractionPageOptions(
+    override val page: Int? = null,
+    override val size: Int? = null,
+    override val sort: String? = null,
+    override val order: SortOrder? = null,
+    override val limited: Boolean = false,
+    val endpoint: String? = null,
+    val origin: String? = null,
+    val userId: Int? = null,
+    val response: Int? = null,
+) : PageOptionsBase<InteractionPageOptions>() {
+    override fun duplicate(
+        page: Int?,
+        size: Int?,
+        sort: String?,
+        order: SortOrder?,
+        limited: Boolean,
+    ): InteractionPageOptions =
+        duplicate(
+            page,
+            size,
+            sort,
+            order,
+            limited,
+            endpoint,
+            origin,
+            userId,
+            response,
+        )
+
+    fun duplicate(
+        page: Int? = this.page,
+        size: Int? = this.size,
+        sort: String? = this.sort,
+        order: SortOrder? = this.order,
+        limited: Boolean = this.limited,
+        endpoint: String? = this.endpoint,
+        origin: String? = this.origin,
+        userId: Int? = this.userId,
+        response: Int? = this.response,
+    ): InteractionPageOptions = InteractionPageOptions(
+        page,
+        size,
+        sort,
+        order,
+        limited,
+        endpoint,
+        origin,
+        userId,
+        response,
+    )
 }

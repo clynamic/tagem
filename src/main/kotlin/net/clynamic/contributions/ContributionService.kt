@@ -2,10 +2,13 @@ package net.clynamic.contributions
 
 import net.clynamic.common.IntServiceTable
 import net.clynamic.common.IntSqlService
+import net.clynamic.common.PageOptionsBase
 import net.clynamic.common.instant
 import net.clynamic.common.setAll
+import net.clynamic.contributions.ContributionsService.Contributions
 import net.clynamic.projects.ProjectsService
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
@@ -15,7 +18,7 @@ import org.jetbrains.exposed.sql.statements.UpdateStatement
 import java.time.Instant
 
 class ContributionsService(database: Database) :
-    IntSqlService<ContributionInsert, Contribution, Nothing, ContributionsService.Contributions>(
+    IntSqlService<ContributionInsert, Contribution, Nothing, Contributions, ContributionPageOptions>(
         database
     ) {
     object Contributions : IntServiceTable() {
@@ -44,6 +47,13 @@ class ContributionsService(database: Database) :
         createdAt = row[Contributions.createdAt],
     )
 
+    override suspend fun query(options: ContributionPageOptions): Query {
+        return super.query(options)
+            .let { base ->
+                options.projectId?.let { base.andWhere { table.projectId eq it } } ?: base
+            }.let { base -> options.userId?.let { base.andWhere { table.userId eq it } } ?: base }
+    }
+
     override fun fromUpdate(statement: UpdateStatement, update: Nothing) {
         throw UnsupportedOperationException("Cannot update a contribution")
     }
@@ -71,18 +81,48 @@ class ContributionsService(database: Database) :
             )
         )
     }
+}
 
-    suspend fun page(
-        page: Int? = null,
-        size: Int? = null,
-        sort: String? = null,
-        order: SortOrder? = null,
-        projectId: Int? = null,
-        userId: Int? = null,
-    ): List<Contribution> = dbQuery {
-        query(page, size, sort, order)
-            .let { base -> projectId?.let { base.andWhere { table.projectId eq it } } ?: base }
-            .let { base -> userId?.let { base.andWhere { table.userId eq it } } ?: base }
-            .toModelList()
-    }
+data class ContributionPageOptions(
+    override val page: Int? = null,
+    override val size: Int? = null,
+    override val sort: String? = null,
+    override val order: SortOrder? = null,
+    override val limited: Boolean = true,
+    val projectId: Int? = null,
+    val userId: Int? = null,
+) : PageOptionsBase<ContributionPageOptions>() {
+    override fun duplicate(
+        page: Int?,
+        size: Int?,
+        sort: String?,
+        order: SortOrder?,
+        limited: Boolean,
+    ): ContributionPageOptions = duplicate(
+        page = page,
+        size = size,
+        sort = sort,
+        order = order,
+        limited = limited,
+        projectId = projectId,
+        userId = userId
+    )
+
+    fun duplicate(
+        page: Int? = this.page,
+        size: Int? = this.size,
+        sort: String? = this.sort,
+        order: SortOrder? = this.order,
+        limited: Boolean = this.limited,
+        projectId: Int? = this.projectId,
+        userId: Int? = this.userId,
+    ): ContributionPageOptions = copy(
+        page = page,
+        size = size,
+        sort = sort,
+        order = order,
+        limited = limited,
+        projectId = projectId,
+        userId = userId
+    )
 }

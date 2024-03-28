@@ -1,8 +1,10 @@
 package net.clynamic.comments
 
+import net.clynamic.comments.CommentsService.Comments
 import net.clynamic.common.IntServiceTable
 import net.clynamic.common.IntSqlService
 import net.clynamic.common.NoSuchRecordException
+import net.clynamic.common.PageOptionsBase
 import net.clynamic.common.Visibility
 import net.clynamic.common.instant
 import net.clynamic.common.setAll
@@ -19,7 +21,7 @@ import org.jetbrains.exposed.sql.statements.UpdateStatement
 import java.time.Instant
 
 class CommentsService(database: Database) :
-    IntSqlService<CommentRequest, Comment, CommentUpdate, CommentsService.Comments>(database) {
+    IntSqlService<CommentRequest, Comment, CommentUpdate, Comments, CommentPageOptions>(database) {
     object Comments : IntServiceTable() {
         val projectId = integer("project_id").references(ProjectsService.Projects.id)
         val userId = integer("user_id").references(UsersService.Users.id)
@@ -61,26 +63,19 @@ class CommentsService(database: Database) :
         }
     }
 
-    private suspend fun query(
-        page: Int?,
-        size: Int?,
-        sort: String?,
-        order: SortOrder?,
-        hidden: Visibility = Visibility.None,
-    ): Query {
-        return super.query(page, size, sort, order)
+    override suspend fun query(options: CommentPageOptions): Query =
+        super.query(options)
+            .let { base -> options.user?.let { base.andWhere { table.userId eq it } } ?: base }
             .let { base ->
-                when (hidden) {
+                options.project?.let { base.andWhere { table.projectId eq it } } ?: base
+            }
+            .let { base ->
+                when (options.hidden) {
                     is Visibility.None -> base.andWhere { table.hiddenBy.isNull() }
-                    is Visibility.Only -> base.andWhere { table.hiddenBy.isNull() or (table.userId eq hidden.id) }
+                    is Visibility.Only -> base.andWhere { table.hiddenBy.isNull() or (table.userId eq options.hidden.id) }
                     is Visibility.All -> base
                 }
             }
-    }
-
-    override suspend fun query(page: Int?, size: Int?, sort: String?, order: SortOrder?): Query {
-        return query(page, size, sort, order, Visibility.None)
-    }
 
     suspend fun readOrNull(
         id: Int,
@@ -100,19 +95,49 @@ class CommentsService(database: Database) :
     }
 
     override suspend fun read(id: Int): Comment = read(id, Visibility.None)
+}
 
-    suspend fun page(
-        page: Int? = null,
-        size: Int? = null,
-        sort: String? = null,
-        order: SortOrder? = null,
-        user: Int? = null,
-        project: Int? = null,
-        hidden: Visibility = Visibility.None,
-    ): List<Comment> = dbQuery {
-        query(page, size, sort, order, hidden)
-            .let { base -> user?.let { base.andWhere { table.userId eq it } } ?: base }
-            .let { base -> project?.let { base.andWhere { table.projectId eq it } } ?: base }
-            .toModelList()
-    }
+data class CommentPageOptions(
+    override val page: Int? = null,
+    override val size: Int? = null,
+    override val sort: String? = null,
+    override val order: SortOrder? = null,
+    override val limited: Boolean = true,
+    val user: Int? = null,
+    val project: Int? = null,
+    val hidden: Visibility = Visibility.None,
+) : PageOptionsBase<CommentPageOptions>() {
+    override fun duplicate(
+        page: Int?,
+        size: Int?,
+        sort: String?,
+        order: SortOrder?,
+        limited: Boolean,
+    ) = copy(
+        page = page,
+        size = size,
+        sort = sort,
+        order = order,
+        limited = limited,
+    )
+
+    fun duplicate(
+        page: Int? = this.page,
+        size: Int? = this.size,
+        sort: String? = this.sort,
+        order: SortOrder? = this.order,
+        limited: Boolean = this.limited,
+        user: Int? = this.user,
+        project: Int? = this.project,
+        hidden: Visibility = this.hidden,
+    ) = copy(
+        page = page,
+        size = size,
+        sort = sort,
+        order = order,
+        limited = limited,
+        user = user,
+        project = project,
+        hidden = hidden,
+    )
 }

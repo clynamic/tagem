@@ -12,9 +12,8 @@ import io.ktor.server.request.uri
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
-import net.clynamic.common.getPageAndSize
-import net.clynamic.common.getSortAndOrder
 import net.clynamic.common.id
+import net.clynamic.common.paged
 import net.clynamic.users.UserPrincipal
 import net.clynamic.users.UserRank
 import net.clynamic.users.authorize
@@ -90,18 +89,17 @@ fun Application.configureInteractionsRouting() {
                     response {
                         HttpStatusCode.OK to {
                             description = "The page of interactions"
-                            body<List<Interaction>> {}
+                            body<InteractionPage> {}
                         }
                     }
                 }) {
-                    val (page, size) = call.getPageAndSize()
-                    val (sort, order) = call.getSortAndOrder()
-                    val endpoint = call.parameters["endpoint"]
-                    val origin = call.parameters["origin"]
-                    val user = call.parameters["user"]?.toIntOrNull()
-                    val response = call.parameters["response"]?.toIntOrNull()
-                    val interactions =
-                        service.page(page, size, sort, order, endpoint, origin, user, response)
+                    val options = InteractionPageOptions().paged(call).duplicate(
+                        endpoint = call.parameters["endpoint"],
+                        origin = call.parameters["origin"],
+                        userId = call.parameters["user"]?.toIntOrNull(),
+                        response = call.parameters["response"]?.toIntOrNull(),
+                    )
+                    val interactions = service.page(options)
                     call.respond(HttpStatusCode.OK, interactions)
                 }
             }

@@ -10,9 +10,8 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
-import net.clynamic.common.getPageAndSize
-import net.clynamic.common.getSortAndOrder
 import net.clynamic.common.id
+import net.clynamic.common.paged
 import net.clynamic.users.UserRank
 import net.clynamic.users.authorize
 import org.jetbrains.exposed.sql.SortOrder
@@ -62,15 +61,15 @@ fun Application.configureContributionsRouting() {
             response {
                 HttpStatusCode.OK to {
                     description = "The contributions"
-                    body<List<Contribution>> {}
+                    body<ContributionPage> {}
                 }
             }
         }) {
-            val (page, size) = call.getPageAndSize()
-            val (sort, order) = call.getSortAndOrder()
-            val user = call.parameters["user"]?.toIntOrNull()
-            val project = call.parameters["project"]?.toIntOrNull()
-            val projects = service.page(page, size, sort, order, user, project)
+            val options = ContributionPageOptions().paged(call).duplicate(
+                projectId = call.parameters["user"]?.toIntOrNull(),
+                userId = call.parameters["project"]?.toIntOrNull(),
+            )
+            val projects = service.page(options)
             call.respond(HttpStatusCode.OK, projects)
         }
         authenticate {

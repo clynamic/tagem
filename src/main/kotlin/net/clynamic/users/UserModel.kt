@@ -2,6 +2,7 @@ package net.clynamic.users
 
 import io.ktor.server.auth.Principal
 import io.swagger.v3.oas.annotations.media.Schema
+import net.clynamic.common.Page
 
 data class User(
     @field:Schema(required = true)
@@ -15,6 +16,13 @@ data class User(
     @field:Schema(required = true)
     val isBanned: Boolean,
 )
+
+data class UserPage(
+    override val items: List<User>,
+    override val page: Int,
+    override val total: Long,
+    override val pages: Int,
+) : Page<User>()
 
 data class UserRequest(
     @field:Schema(required = true)

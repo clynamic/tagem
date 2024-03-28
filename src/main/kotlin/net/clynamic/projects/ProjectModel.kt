@@ -1,6 +1,7 @@
 package net.clynamic.projects
 
 import io.swagger.v3.oas.annotations.media.Schema
+import net.clynamic.common.Page
 import java.time.Instant
 
 // These values are not actually unused, as they will be passed from and to the client
@@ -42,6 +43,13 @@ data class Project(
     @field:Schema(nullable = true)
     val updatedAt: Instant?,
 )
+
+data class ProjectPage(
+    override val items: List<Project>,
+    override val total: Long,
+    override val page: Int,
+    override val pages: Int,
+) : Page<Project>()
 
 data class ProjectRequest(
     @field:Schema(required = true)
@@ -142,6 +150,13 @@ data class ProjectVersion(
     @field:Schema(required = true)
     val createdAt: Instant,
 )
+
+data class ProjectVersionPage(
+    override val items: List<ProjectVersion>,
+    override val total: Long,
+    override val page: Int,
+    override val pages: Int,
+) : Page<ProjectVersion>()
 
 data class ProjectVersionRequest(
     val projectId: Int,

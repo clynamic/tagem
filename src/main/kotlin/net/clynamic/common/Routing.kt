@@ -3,16 +3,20 @@ package net.clynamic.common
 import io.ktor.server.application.ApplicationCall
 import org.jetbrains.exposed.sql.SortOrder
 
-fun ApplicationCall.getPageAndSize(): Pair<Int?, Int?> {
-    val page = this.parameters["page"]?.toIntOrNull()
-    val size = this.parameters["size"]?.toIntOrNull()
-    return Pair(page, size)
-}
-
-fun ApplicationCall.getSortAndOrder(): Pair<String?, SortOrder?> {
-    val sort = this.parameters["sort"]
-    val order = this.parameters["order"]?.let {
-        SortOrder.valueOf(it.lowercase())
-    }
-    return Pair(sort, order)
+/**
+ * Applies the page options from the call to a page options object.
+ */
+fun <T : PageOptionsBase<T>> PageOptionsBase<T>.paged(call: ApplicationCall): T {
+    return duplicate(
+        page = call.parameters["page"]?.toIntOrNull(),
+        size = call.parameters["size"]?.toIntOrNull(),
+        sort = call.parameters["sort"],
+        order = call.parameters["order"]?.let {
+            try {
+                SortOrder.valueOf(it.uppercase())
+            } catch (e: IllegalArgumentException) {
+                null
+            }
+        },
+    )
 }

@@ -2,6 +2,7 @@ package net.clynamic.common
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.swagger.v3.oas.annotations.media.Schema
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.ColumnType
@@ -23,19 +24,86 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.time.Instant
+import kotlin.math.ceil
+import kotlin.math.max
 
-interface Service<Request, Model, Update, Id> {
+abstract class Page<T> {
+    @get:Schema(required = true)
+    abstract val items: List<T>
+
+    @get:Schema(required = true)
+    abstract val total: Long
+
+    @get:Schema(required = true)
+    abstract val page: Int
+
+    @get:Schema(required = true)
+    abstract val pages: Int
+}
+
+data class ServicePage<T>(
+    override val items: List<T>,
+    override val total: Long,
+    override val page: Int,
+    override val pages: Int,
+) : Page<T>()
+
+abstract class PageOptionsBase<T : PageOptionsBase<T>> {
+    abstract val page: Int?
+    abstract val size: Int?
+    abstract val sort: String?
+    abstract val order: SortOrder?
+    abstract val limited: Boolean
+    open val defaultPage: Int = 1
+    open val defaultSize: Int = 40
+
+    abstract fun duplicate(
+        page: Int? = this.page,
+        size: Int? = this.size,
+        sort: String? = this.sort,
+        order: SortOrder? = this.order,
+        limited: Boolean = this.limited,
+    ): T
+}
+
+val PageOptionsBase<*>.pageOrDefault
+    get() = max(1, this.page ?: this.defaultPage)
+val PageOptionsBase<*>.sizeOrDefault
+    get() = max(0, this.size ?: this.defaultSize)
+val PageOptionsBase<*>.orderOrDefault
+    get() = this.order ?: SortOrder.DESC
+val PageOptionsBase<*>.offset
+    get() = (this.sizeOrDefault * (this.pageOrDefault - 1)).toLong()
+
+data class PageOptions(
+    override val page: Int? = null,
+    override val size: Int? = null,
+    override val sort: String? = null,
+    override val order: SortOrder? = null,
+    override val limited: Boolean = true,
+) : PageOptionsBase<PageOptions>() {
+    override fun duplicate(
+        page: Int?,
+        size: Int?,
+        sort: String?,
+        order: SortOrder?,
+        limited: Boolean,
+    ) = copy(
+        page = page,
+        size = size,
+        sort = sort,
+        order = order,
+        limited = limited,
+    )
+}
+
+interface Service<Request, Model, Update, Id, PageOptions> {
     suspend fun create(request: Request): Id
     suspend fun read(id: Id): Model = readOrNull(id) ?: throw NoSuchRecordException(id)
     suspend fun readOrNull(id: Id): Model?
-    suspend fun page(page: Int? = null, size: Int? = null): List<Model>
+    suspend fun page(options: PageOptions): Page<Model>
     suspend fun update(id: Id, update: Update)
     suspend fun delete(id: Id)
-
-    companion object {
-        const val defaultPage = 0
-        const val defaultSize = 20
-    }
 }
 
 class NoSuchRecordException(id: Any?, type: String? = null) :
@@ -64,9 +132,9 @@ abstract class IntServiceTable(name: String = "") : ServiceTable<Int>(name) {
     override fun toId(row: ResultRow): Int = row[id]
 }
 
-abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<Id>>(
+abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<Id>, PageOptions : PageOptionsBase<PageOptions>>(
     database: Database,
-) : Service<Request, Model, Update, Id> {
+) : Service<Request, Model, Update, Id, PageOptions> {
 
     abstract val table: TableType
 
@@ -82,36 +150,33 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
     internal fun Query.toModel(): Model? = toModelList().singleOrNull()
     internal fun Query.toModelList(): List<Model> = mapNotNull(::toModel)
 
-    open suspend fun query(
-        page: Int?,
-        size: Int?,
-        sort: String?,
-        order: SortOrder?,
-    ): Query = dbQuery {
-        val pageSize = size ?: Service.defaultSize
-        val pageNumber = page ?: Service.defaultPage
-
+    open suspend fun query(options: PageOptions): Query = dbQuery {
         val query = table.selectAll()
 
-        if (sort != null) {
+        options.sort?.let { sort ->
             val column = table.columns.firstOrNull { it.name.equals(sort, ignoreCase = true) }
             if (column != null) {
-                query.orderBy(column to (order ?: SortOrder.DESC))
+                query.orderBy(column to options.orderOrDefault)
             }
         }
 
-        query.limit(pageSize, pageSize * pageNumber.toLong())
+        if (options.limited) {
+            query.limit(options.sizeOrDefault, options.offset)
+        }
+
+        query
     }
 
-    open suspend fun page(
-        page: Int? = null,
-        size: Int? = null,
-        sort: String? = null,
-        order: SortOrder? = null,
-    ): List<Model> = dbQuery { query(page, size, sort, order).toModelList() }
-
-    override suspend fun page(page: Int?, size: Int?): List<Model> = dbQuery {
-        page(page, size, null, null)
+    override suspend fun page(options: PageOptions): Page<Model> = dbQuery {
+        val items = query(options).toModelList()
+        val count = query(options.duplicate(limited = false)).count()
+        ServicePage(
+            items = items,
+            total = count,
+            page = options.pageOrDefault,
+            pages = if (items.isEmpty()) 0 else
+                ceil((count / items.size).toDouble()).toInt()
+        )
     }
 
     abstract fun fromRequest(statement: InsertStatement<*>, request: Request)
@@ -144,10 +209,9 @@ abstract class SqlService<Request, Model, Update, Id, TableType : ServiceTable<I
     }
 }
 
-abstract class IntSqlService<Request, Model, Update, TableType : IntServiceTable>(
+abstract class IntSqlService<Request, Model, Update, TableType : IntServiceTable, PageType : PageOptionsBase<PageType>>(
     database: Database,
-) : SqlService<Request, Model, Update, Int, TableType>(database)
-
+) : SqlService<Request, Model, Update, Int, TableType, PageType>(database)
 
 class InstantAsISO : ColumnType() {
     override fun sqlType(): String = "VARCHAR"

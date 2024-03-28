@@ -18,9 +18,8 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import net.clynamic.common.DATABASE_KEY
 import net.clynamic.common.JWT_KEY
-import net.clynamic.common.getPageAndSize
-import net.clynamic.common.getSortAndOrder
 import net.clynamic.common.id
+import net.clynamic.common.paged
 import java.io.IOException
 
 fun Application.configureUsersRouting() {
@@ -147,13 +146,12 @@ fun Application.configureUsersRouting() {
                 response {
                     HttpStatusCode.OK to {
                         description = "The users"
-                        body<List<User>> {}
+                        body<UserPage> {}
                     }
                 }
             }) {
-            val (page, size) = call.getPageAndSize()
-            val (sort, order) = call.getSortAndOrder()
-            val users = service.page(page, size, sort, order)
+            val options = UserPageOptions().paged(call)
+            val users = service.page(options)
             call.respond(HttpStatusCode.OK, users)
         }
         authenticate {

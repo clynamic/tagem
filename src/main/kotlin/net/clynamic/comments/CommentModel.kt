@@ -1,6 +1,7 @@
 package net.clynamic.comments
 
 import io.swagger.v3.oas.annotations.media.Schema
+import net.clynamic.common.Page
 import java.time.Instant
 
 data class Comment(
@@ -19,6 +20,13 @@ data class Comment(
     @field:Schema(nullable = true)
     val updatedAt: Instant?,
 )
+
+data class CommentPage(
+    override val items: List<Comment>,
+    override val total: Long,
+    override val page: Int,
+    override val pages: Int,
+) : Page<Comment>()
 
 data class CommentRequest(
     @field:Schema(required = true)
